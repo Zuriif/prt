@@ -1,14 +1,25 @@
-// src/pages/visitor/PublicHome.jsx
-import { Link }              from "react-router-dom";
-import { useEffect, useState } from "react";
-import client                from "../../api/axiosClient";
-import SearchEntites         from "./SearchEntites";
-import SearchProduits        from "./SearchProduits";
-import SearchSecteurs        from "./SearchSecteurs";
+// src/pages/visitor/VisitorHome.jsx
+import { useContext, useEffect, useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
+import { AuthContext } from "../../contexts/AuthContext";
+import client from "../../api/axiosClient";
+import SearchEntites from "./SearchEntites";
+import SearchProduits from "./SearchProduits";
+import SearchSecteurs from "./SearchSecteurs";
 
-export default function PublicHome() {
+export default function VisitorHome() {
+  const { token, user } = useContext(AuthContext);
+  const navigate = useNavigate();
   const [mediaList, setMediaList] = useState([]);
 
+  // Redirect admins straight to dashboard
+  useEffect(() => {
+    if (token && user?.role === "ADMIN") {
+      navigate("/dashboard", { replace: true });
+    }
+  }, [token, user, navigate]);
+
+  // Fetch public media
   useEffect(() => {
     client
       .get("/api/media")
@@ -17,18 +28,31 @@ export default function PublicHome() {
   }, []);
 
   return (
-    <div className="">
+    <div>
       {/* Navbar */}
       <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm">
         <div className="container">
-          <Link className="navbar-brand fw-bold" to="/">MaPlateforme</Link>
+          <Link className="navbar-brand fw-bold" to="/">
+            Morocco 
+          </Link>
           <div className="d-flex">
-            <Link className="btn btn-outline-primary me-2" to="/login">
-              Connexion
-            </Link>
-            <Link className="btn btn-primary" to="/register">
-              Inscription
-            </Link>
+            {token ? (
+              <Link className="btn btn-primary" to="/dashboard">
+                Tableau de bord
+              </Link>
+            ) : (
+              <>
+                <Link
+                  className="btn btn-outline-primary me-2"
+                  to="/login"
+                >
+                  Connexion
+                </Link>
+                <Link className="btn btn-primary" to="/register">
+                  Inscription
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </nav>
@@ -36,9 +60,10 @@ export default function PublicHome() {
       {/* Jumbotron */}
       <header className="py-5 bg-light mb-4">
         <div className="container text-center">
-          <h1 className="display-5">Actualités & Événements</h1>
+          <h1 className="display-5">Actualités &amp; Événements</h1>
           <p className="lead">
-            Bienvenue sur notre plateforme ! Retrouvez ici les dernières informations publiques.
+            Bienvenue sur notre plateforme ! Retrouvez ici les dernières
+            informations publiques.
           </p>
         </div>
       </header>

@@ -1,8 +1,8 @@
 // src/pages/Login.jsx
 import { useState, useContext } from "react";
-import { Link, useNavigate }   from "react-router-dom";
-import client                  from "../api/axiosClient";
-import { AuthContext }         from "../contexts/AuthContext";
+import { Link, useNavigate } from "react-router-dom";
+import client from "../api/axiosClient";
+import { AuthContext } from "../contexts/AuthContext";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -63,14 +63,21 @@ export default function Login() {
                 </button>
               </form>
               <p className="mt-3 text-center">
-                Pas encore inscrit ?{" "}
+                Pas encore inscrit ?{' '}
                 <Link to="/register">Créer un compte</Link>
               </p>
+              <div className="text-center mt-2">
+                <Link to="/">
+                  <button className="btn btn-outline-secondary">
+                    Retour à l'accueil visiteurs
+                  </button>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
       </div>
       <ToastContainer position="top-center" />
     </div>
-);
+  );
 }
