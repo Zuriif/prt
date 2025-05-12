@@ -8,6 +8,8 @@ import {
 } from "../services/mediaService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
 
 export default function MediaList() {
   const [files, setFiles] = useState([]);
@@ -16,6 +18,8 @@ export default function MediaList() {
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showModal, setShowModal] = useState(false);
+  const [selectedMedia, setSelectedMedia] = useState(null);
 
   useEffect(() => {
     loadFiles();
@@ -76,18 +80,31 @@ export default function MediaList() {
   // Download file
   const handleDownload = async id => {
     try {
-      const blob = await downloadMedia(id);
+      const response = await downloadMedia(id);
+      const blob = response.data;
+      const filename = files.find(f => f.id === id)?.nomFichier || 'download';
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = "";
+      a.download = filename;
       document.body.appendChild(a);
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
-    } catch {
+    } catch (error) {
+      console.error('Download error:', error);
       toast.error("Erreur de téléchargement");
     }
+  };
+
+  const handleView = (mediaItem) => {
+    setSelectedMedia(mediaItem);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedMedia(null);
   };
 
   return (
@@ -97,13 +114,13 @@ export default function MediaList() {
         <div>
           <button
             className="btn btn-danger me-2"
-            disabled={selectedIds.size === 0}
+            disabled={!selectedIds.size}
             onClick={handleBulkDelete}
           >
-            Supprimer sélection
+            Delete
           </button>
-          <Link to="/media/create" className="btn btn-success">
-            + Ajouter un média
+          <Link to="/media/new" className="btn btn-success">
+            + Add New Media
           </Link>
         </div>
       </div>
@@ -164,6 +181,18 @@ export default function MediaList() {
                       Télécharger
                     </button>
                     <button
+                      className="btn btn-sm btn-info me-2"
+                      onClick={() => handleView(f)}
+                    >
+                      View
+                    </button>
+                    <Link
+                      to={`/media/${f.id}`}
+                      className="btn btn-sm btn-warning me-2"
+                    >
+                      Edit
+                    </Link>
+                    <button
                       className="btn btn-sm btn-danger"
                       onClick={async () => {
                         if (window.confirm("Supprimer ce média ?")) {
@@ -222,6 +251,30 @@ export default function MediaList() {
       </div>
 
       <ToastContainer position="top-center" />
+
+      {/* Details Modal */}
+      <Modal show={showModal} onHide={handleCloseModal} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Détails du Média</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedMedia && (
+            <div>
+              <p><strong>ID:</strong> {selectedMedia.id}</p>
+              <p><strong>Nom:</strong> {selectedMedia.nomFichier}</p>
+              <p><strong>Description:</strong> {selectedMedia.description}</p>
+              {selectedMedia.url && (
+                <img src={selectedMedia.url} alt={selectedMedia.nomFichier} style={{ maxWidth: '100%' }} />
+              )}
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseModal}>
+            Fermer
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
-);
+  );
 }

@@ -1,0 +1,136 @@
+/* Dashboard Styles */
+.dashboard-container {
+    background-color: #f8f9fa;
+    min-height: 100vh;
+  }
+  
+  /* Card Styles */
+  .dashboard-card {
+    border: none;
+    border-radius: 10px;
+    transition: all 0.3s ease;
+  }
+  
+  .dashboard-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+  }
+  
+  .dashboard-card .card-body {
+    padding: 1.5rem;
+  }
+  
+  /* Stat Card Styles */
+  .stat-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    height: 100%;
+  }
+  
+  .stat-card .icon-container {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 600;
+    margin: 0.5rem 0;
+  }
+  
+  .stat-card .stat-label {
+    color: #6c757d;
+    font-size: 0.875rem;
+  }
+  
+  /* Quick Access Card Styles */
+  .quick-access-card {
+    background: white;
+    border-radius: 10px;
+    padding: 1.5rem;
+    height: 100%;
+    cursor: pointer;
+  }
+  
+  .quick-access-card:hover {
+    background: #f8f9fa;
+  }
+  
+  .quick-access-card .icon-container {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+  }
+  
+  /* Table Styles */
+  .dashboard-table {
+    background: white;
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  
+  .dashboard-table th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+  }
+  
+  .dashboard-table td {
+    vertical-align: middle;
+  }
+  
+  /* Badge Styles */
+  .role-badge {
+    padding: 0.5em 1em;
+    border-radius: 20px;
+    font-weight: 500;
+  }
+  
+  /* Button Styles */
+  .action-button {
+    padding: 0.375rem 0.75rem;
+    border-radius: 5px;
+    transition: all 0.2s ease;
+  }
+  
+  .action-button:hover {
+    transform: translateY(-2px);
+  }
+  
+  /* Welcome Section */
+  .welcome-section {
+    margin-bottom: 2rem;
+  }
+  
+  .welcome-section h2 {
+    font-weight: 600;
+    color: #2c3e50;
+  }
+  
+  .welcome-section p {
+    color: #6c757d;
+  }
+  
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .stat-card .stat-value {
+      font-size: 1.5rem;
+    }
+    
+    .dashboard-table {
+      font-size: 0.875rem;
+    }
+    
+    .action-button {
+      padding: 0.25rem 0.5rem;
+    }
+  } 

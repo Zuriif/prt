@@ -7,211 +7,188 @@ import {
 } from "../services/fonctionnaireService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
 
 export default function FonctionnairesList() {
-  const [list, setList] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
+  const [fonctionnaires, setFonctionnaires] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showModal, setShowModal] = useState(false);
+  const [selectedFonctionnaire, setSelectedFonctionnaire] = useState(null);
 
   useEffect(() => {
-    load();
+    loadFonctionnaires();
   }, []);
 
-  async function load() {
-    setLoading(true);
+  const loadFonctionnaires = () => {
+    fetchFonctionnaires()
+      .then(({ data }) => setFonctionnaires(data))
+      .catch(() => toast.error("Impossible de charger les fonctionnaires"));
+  };
+
+  const handleDelete = async id => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce fonctionnaire ?")) {
+      return;
+    }
     try {
-      const res = await fetchFonctionnaires();
-      setList(res.data);
+      await deleteFonctionnaire(id);
+      toast.success("Fonctionnaire supprimé");
+      loadFonctionnaires();
     } catch {
-      toast.error("Erreur de chargement des fonctionnaires");
-    } finally {
-      setLoading(false);
+      toast.error("Impossible de supprimer le fonctionnaire");
     }
-  }
-
-  // Filtrage & pagination
-  const filtered = list.filter(f =>
-    (`${f.nom} ${f.prenom}`).toLowerCase().includes(search.toLowerCase())
-  );
-  const totalItems = filtered.length;
-  const pageCount = Math.ceil(totalItems / pageSize);
-  const startIdx = (page - 1) * pageSize;
-  const paged = filtered.slice(startIdx, startIdx + pageSize);
-
-  // Sélection multiple
-  const allSelected =
-    paged.length > 0 && paged.every(f => selectedIds.has(f.id));
-  const toggleAll = () => {
-    const s = new Set(selectedIds);
-    if (allSelected) {
-      paged.forEach(f => s.delete(f.id));
-    } else {
-      paged.forEach(f => s.add(f.id));
-    }
-    setSelectedIds(s);
-  };
-  const toggleOne = id => {
-    const s = new Set(selectedIds);
-    s.has(id) ? s.delete(id) : s.add(id);
-    setSelectedIds(s);
   };
 
-  // Suppression en masse
   const handleBulkDelete = async () => {
-    if (selectedIds.size === 0) return;
-    if (!window.confirm("Supprimer les fonctionnaires sélectionnés ?")) return;
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ces fonctionnaires ?")) {
+      return;
+    }
     try {
-      await Promise.all(
-        Array.from(selectedIds).map(id => deleteFonctionnaire(id))
-      );
+      await Promise.all([...selectedIds].map(id => deleteFonctionnaire(id)));
       toast.success("Fonctionnaires supprimés");
       setSelectedIds(new Set());
-      load();
+      loadFonctionnaires();
     } catch {
-      toast.error("Erreur lors de la suppression");
+      toast.error("Impossible de supprimer les fonctionnaires");
     }
+  };
+
+  const toggleSelect = id => {
+    const newSelected = new Set(selectedIds);
+    if (newSelected.has(id)) {
+      newSelected.delete(id);
+    } else {
+      newSelected.add(id);
+    }
+    setSelectedIds(newSelected);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === fonctionnaires.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(fonctionnaires.map(e => e.id)));
+    }
+  };
+
+  const handleView = (fonctionnaire) => {
+    setSelectedFonctionnaire(fonctionnaire);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedFonctionnaire(null);
   };
 
   return (
     <div className="container py-4">
-      {/* Toolbar */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h1 className="h3">Gestion des fonctionnaires</h1>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="h3">Fonctionnaires</h1>
         <div>
           <button
             className="btn btn-danger me-2"
-            disabled={selectedIds.size === 0}
+            disabled={!selectedIds.size}
             onClick={handleBulkDelete}
           >
-            Supprimer sélection
+            Delete
           </button>
-          <Link to="/fonctionnaires/create" className="btn btn-success">
-            + Nouveau fonctionnaire
+          <Link to="/fonctionnaires/new" className="btn btn-success">
+            + Add New Fonctionnaire
           </Link>
         </div>
       </div>
 
-      {/* Search */}
-      <div className="mb-3">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Rechercher par nom/prénom..."
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-        />
-      </div>
-
-      {/* Table */}
-      {loading ? (
-        <div>Chargement…</div>
-      ) : (
-        <div className="table-responsive">
-          <table className="table table-striped table-hover align-middle">
-            <thead>
-              <tr>
-                <th>
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={toggleAll}
-                  />
-                </th>
-                <th>ID</th>
-                <th>Nom</th>
-                <th>Prénom</th>
-                <th>Email</th>
-                <th>GSM</th>
-                <th>Profil</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {paged.map(f => (
-                <tr key={f.id}>
-                  <td>
+      <div className="card shadow-sm">
+        <div className="card-body">
+          <div className="table-responsive">
+            <table className="table table-striped table-hover align-middle">
+              <thead>
+                <tr>
+                  <th>
                     <input
                       type="checkbox"
-                      checked={selectedIds.has(f.id)}
-                      onChange={() => toggleOne(f.id)}
+                      checked={selectedIds.size === fonctionnaires.length}
+                      onChange={toggleSelectAll}
                     />
-                  </td>
-                  <td>{f.id}</td>
-                  <td>{f.nom}</td>
-                  <td>{f.prenom}</td>
-                  <td>{f.email}</td>
-                  <td>{f.gsm}</td>
-                  <td>{f.profil}</td>
-                  <td>
-                    <Link
-                      to={`/fonctionnaires/${f.id}/edit`}
-                      className="btn btn-sm btn-primary me-2"
-                    >
-                      Éditer
-                    </Link>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={async () => {
-                        if (window.confirm("Supprimer ce fonctionnaire ?")) {
-                          await deleteFonctionnaire(f.id);
-                          load();
-                        }
-                      }}
-                    >
-                      Supprimer
-                    </button>
-                  </td>
+                  </th>
+                  <th>ID</th>
+                  <th>Nom</th>
+                  <th>Prénom</th>
+                  <th>Email</th>
+                  <th>GSM</th>
+                  <th>Profil</th>
+                  <th>Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {fonctionnaires.map(f => (
+                  <tr key={f.id}>
+                    <td>
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.has(f.id)}
+                        onChange={() => toggleSelect(f.id)}
+                      />
+                    </td>
+                    <td>{f.id}</td>
+                    <td>{f.nom}</td>
+                    <td>{f.prenom}</td>
+                    <td>{f.email}</td>
+                    <td>{f.gsm}</td>
+                    <td>{f.profil}</td>
+                    <td>
+                      <button
+                        className="btn btn-sm btn-info me-2"
+                        onClick={() => handleView(f)}
+                      >
+                        View
+                      </button>
+                      <Link
+                        to={`/fonctionnaires/${f.id}`}
+                        className="btn btn-sm btn-primary me-2"
+                      >
+                        Edit
+                      </Link>
+                      <button
+                        className="btn btn-sm btn-danger"
+                        onClick={() => handleDelete(f.id)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
-      )}
-
-      {/* Pagination */}
-      <div className="d-flex justify-content-between align-items-center mt-3">
-        <small className="text-muted">
-          {startIdx + 1}–{startIdx + paged.length} sur {totalItems}
-        </small>
-        <nav>
-          <ul className="pagination mb-0">
-            <li className={`page-item ${page === 1 && "disabled"}`}>
-              <button
-                className="page-link"
-                onClick={() => setPage(p => Math.max(p - 1, 1))}
-              >
-                Précédent
-              </button>
-            </li>
-            {[...Array(pageCount)].map((_, i) => (
-              <li
-                key={i}
-                className={`page-item ${page === i + 1 && "active"}`}
-              >
-                <button className="page-link" onClick={() => setPage(i + 1)}>
-                  {i + 1}
-                </button>
-              </li>
-            ))}
-            <li className={`page-item ${page === pageCount && "disabled"}`}>
-              <button
-                className="page-link"
-                onClick={() => setPage(p => Math.min(p + 1, pageCount))}
-              >
-                Suivant
-              </button>
-            </li>
-          </ul>
-        </nav>
       </div>
-
       <ToastContainer position="top-center" />
+
+      {/* Details Modal */}
+      <Modal show={showModal} onHide={handleCloseModal} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Détails du Fonctionnaire</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedFonctionnaire && (
+            <div>
+              <p><strong>ID:</strong> {selectedFonctionnaire.id}</p>
+              <p><strong>Nom:</strong> {selectedFonctionnaire.nom}</p>
+              <p><strong>Prénom:</strong> {selectedFonctionnaire.prenom}</p>
+              <p><strong>Email:</strong> {selectedFonctionnaire.email}</p>
+              <p><strong>GSM:</strong> {selectedFonctionnaire.gsm}</p>
+              <p><strong>Entite:</strong> {selectedFonctionnaire.profil}</p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseModal}>
+            Fermer
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
-);
+  );
 }

@@ -26,9 +26,19 @@ import SousSecteursList   from "./pages/SousSecteursList";
 import SousSecteursForm   from "./pages/SousSecteursForm";
 import TypeEntreprisesList from "./pages/TypeEntreprisesList";
 import TypeEntreprisesForm from "./pages/TypeEntreprisesForm";
+import UserManagement     from "./pages/UserManagement";
+
+// User Dashboard & Views
+import UserHome from "./pages/user/UserHome";
+import UserDashboard from "./pages/user/UserDashboard";
+import UserProductsList from "./pages/user/UserProductsList";
+import UserEntitesList from "./pages/user/UserEntitiesList";
+import UserSecteursList from "./pages/user/UserSecteursList";
+import UserProfile from "./pages/user/UserProfile";
+import UserLayout from "./pages/user/UserLayout";
 
 import ProtectedRoute from "./components/ProtectedRoute";
-import NavBar         from "./components/NavBar";
+import NavBar from "./components/NavBar";
 
 export default function App() {
   return (
@@ -41,52 +51,61 @@ export default function App() {
       {/* 2️⃣ Protected wrapper for all admin routes */}
       <Route
         element={
-          <ProtectedRoute>
-            <NavBar />
-            <Outlet />
+          <ProtectedRoute role="ADMIN">
+            <>
+              <NavBar />
+              <Outlet />
+            </>
           </ProtectedRoute>
         }
       >
         <Route path="/dashboard" element={<Home />} />
-        <Route path="/profile"   element={<Profile />} />
-
-        {/* Entities */}
-        <Route path="/entites"          element={<EntitesList />} />
-        <Route path="/entites/create"   element={<EntiteForm />} />
-        <Route path="/entites/:id/edit" element={<EntiteForm />} />
-
-        {/* Produits */}
-        <Route path="/produits"          element={<ProduitsList />} />
-        <Route path="/produits/create"   element={<ProduitsForm />} />
-        <Route path="/produits/:id/edit" element={<ProduitsForm />} />
-
-        {/* Fonctionnaires */}
-        <Route path="/fonctionnaires"          element={<FonctionnairesList />} />
-        <Route path="/fonctionnaires/create"   element={<FonctionnairesForm />} />
-        <Route path="/fonctionnaires/:id/edit" element={<FonctionnairesForm />} />
-
-        {/* Médias */}
-        <Route path="/media"        element={<MediaList />} />
-        <Route path="/media/create" element={<MediaForm />} />
-
-        {/* Secteurs */}
-        <Route path="/secteurs"          element={<SecteursList />} />
-        <Route path="/secteurs/create"   element={<SecteursForm />} />
-        <Route path="/secteurs/:id/edit" element={<SecteursForm />} />
-
-        {/* Sous-secteurs */}
-        <Route path="/sous-secteurs"          element={<SousSecteursList />} />
-        <Route path="/sous-secteurs/create"   element={<SousSecteursForm />} />
-        <Route path="/sous-secteurs/:id/edit" element={<SousSecteursForm />} />
-
-        {/* Types d’entreprise */}
-        <Route path="/type-entreprises"          element={<TypeEntreprisesList />} />
-        <Route path="/type-entreprises/create"   element={<TypeEntreprisesForm />} />
-        <Route path="/type-entreprises/:id/edit" element={<TypeEntreprisesForm />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/entites" element={<EntitesList />} />
+        <Route path="/entites/new" element={<EntiteForm />} />
+        <Route path="/entites/:id" element={<EntiteForm />} />
+        <Route path="/produits" element={<ProduitsList />} />
+        <Route path="/produits/new" element={<ProduitsForm />} />
+        <Route path="/produits/:id" element={<ProduitsForm />} />
+        <Route path="/fonctionnaires" element={<FonctionnairesList />} />
+        <Route path="/fonctionnaires/new" element={<FonctionnairesForm />} />
+        <Route path="/fonctionnaires/:id" element={<FonctionnairesForm />} />
+        <Route path="/media" element={<MediaList />} />
+        <Route path="/media/new" element={<MediaForm />} />
+        <Route path="/media/:id" element={<MediaForm />} />
+        <Route path="/secteurs" element={<SecteursList />} />
+        <Route path="/secteurs/new" element={<SecteursForm />} />
+        <Route path="/secteurs/:id" element={<SecteursForm />} />
+        <Route path="/sous-secteurs" element={<SousSecteursList />} />
+        <Route path="/sous-secteurs/new" element={<SousSecteursForm />} />
+        <Route path="/sous-secteurs/:id" element={<SousSecteursForm />} />
+        <Route path="/type-entreprises" element={<TypeEntreprisesList />} />
+        <Route path="/type-entreprises/new" element={<TypeEntreprisesForm />} />
+        <Route path="/type-entreprises/:id" element={<TypeEntreprisesForm />} />
+        <Route path="/users" element={<UserManagement />} />
       </Route>
 
-      {/* 3️⃣ Fallback: anything else → VisitorHome */}
-      <Route path="*" element={<Navigate to="/" replace />} />
+      {/* 3️⃣ Protected wrapper for all user routes with new UserLayout */}
+      <Route
+        element={
+          <ProtectedRoute role="USER">
+            <UserLayout>
+              <Outlet />
+            </UserLayout>
+          </ProtectedRoute>
+        }
+      >
+        <Route path="/user/dashboard" element={<UserHome />} />
+        <Route path="/user/produits" element={<UserProductsList />} />
+        <Route path="/user/entites" element={<UserEntitesList />} />
+        <Route path="/user/secteurs" element={<UserSecteursList />} />
+        <Route path="/user/compte" element={<UserProfile />} />
+        <Route path="/user/profile" element={<UserProfile />} />
+        <Route path="/user/userdashboard" element={<UserDashboard />} />
+      </Route>
+
+      {/* 4️⃣ Fallback */}
+      <Route path="*" element={<Navigate to="/" />} />
     </Routes>
   );
 }

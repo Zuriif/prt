@@ -12,10 +12,14 @@ export default function VisitorHome() {
   const navigate = useNavigate();
   const [mediaList, setMediaList] = useState([]);
 
-  // Redirect admins straight to dashboard
+  // Redirect based on authentication status
   useEffect(() => {
-    if (token && user?.role === "ADMIN") {
-      navigate("/dashboard", { replace: true });
+    if (token) {
+      if (user?.role === "ADMIN") {
+        navigate("/dashboard", { replace: true });
+      } else if (user?.role === "USER") {
+        navigate("/user/dashboard", { replace: true });
+      }
     }
   }, [token, user, navigate]);
 
@@ -37,7 +41,7 @@ export default function VisitorHome() {
           </Link>
           <div className="d-flex">
             {token ? (
-              <Link className="btn btn-primary" to="/dashboard">
+              <Link className="btn btn-primary" to={user?.role === "ADMIN" ? "/dashboard" : "/user/dashboard"}>
                 Tableau de bord
               </Link>
             ) : (

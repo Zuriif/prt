@@ -1,11 +1,13 @@
 import React, { useContext, useState } from "react";
-import { AuthContext } from "../contexts/AuthContext";
+import { AuthContext } from "../../contexts/AuthContext";
 import { jwtDecode } from "jwt-decode";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { useNavigate } from "react-router-dom";
 
-export default function Profile() {
-  const { token, updateUser } = useContext(AuthContext);
+export default function UserProfile() {
+  const { token, updateUser, logout } = useContext(AuthContext);
+  const navigate = useNavigate();
   const decoded = token ? jwtDecode(token) : null;
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState({
@@ -15,6 +17,7 @@ export default function Profile() {
     newPassword: "",
     confirmPassword: ""
   });
+  const [initialEmail] = useState(decoded?.sub || "");
 
   if (!decoded) return <div className="p-4">Aucun utilisateur connecté.</div>;
 
@@ -50,6 +53,14 @@ export default function Profile() {
         newPassword: "",
         confirmPassword: ""
       }));
+      // If email was changed, force logout and redirect to login
+      if (formData.email !== initialEmail) {
+        toast.info("Votre email a changé. Veuillez vous reconnecter.");
+        setTimeout(() => {
+          logout();
+          navigate("/login");
+        }, 2000);
+      }
     } catch (error) {
       toast.error(error.message || "Erreur lors de la mise à jour du profil");
     }
@@ -151,4 +162,4 @@ export default function Profile() {
       <ToastContainer position="top-center" />
     </div>
   );
-}
+} 

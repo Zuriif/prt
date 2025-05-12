@@ -1,161 +1,234 @@
 // src/pages/Home.jsx
 import React, { useState, useEffect } from "react";
+import { Container, Row, Col, Card, Table, Button } from 'react-bootstrap';
+import { FaUsers, FaBuilding, FaBox, FaChartLine, FaUserPlus, FaEdit, FaTrash } from 'react-icons/fa';
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-
-import { fetchEntites } from "../services/entiteService";
-import { fetchProduits } from "../services/produitService";
-import { fetchFonctionnaires } from "../services/fonctionnaireService";
-import { fetchMedia } from "../services/mediaService";
-import { fetchSecteurs } from "../services/secteurService";
+import client from '../api/axiosClient';
+import '../style/Dashboard.css';
 
 import {
   PieChart, Pie, Cell, Legend, Tooltip as ReTooltip,
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip
 } from "recharts";
 
-export default function Home() {
-  const [counts, setCounts] = useState({
+const Home = () => {
+  const [stats, setStats] = useState({
+    users: 0,
     entites: 0,
     produits: 0,
-    fonctionnaires: 0,
-    media: 0,
+    total: 0
   });
-  const [entites, setEntites] = useState([]);
-  const [produits, setProduits] = useState([]);
-  const [secteurs, setSecteurs] = useState([]);
+  const [recentUsers, setRecentUsers] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    async function loadAll() {
-      setLoading(true);
-      try {
-        const [eRes, pRes, fRes, mRes, sRes] = await Promise.all([
-          fetchEntites(),
-          fetchProduits(),
-          fetchFonctionnaires(),
-          fetchMedia(),
-          fetchSecteurs(),
-        ]);
-        setEntites(eRes.data);
-        setProduits(pRes.data);
-        setSecteurs(sRes.data);
-        setCounts({
-          entites: eRes.data.length,
-          produits: pRes.data.length,
-          fonctionnaires: fRes.data.length,
-          media: mRes.data.length,
-        });
-      } catch (err) {
-        toast.error("Erreur lors du chargement des données");
-      } finally {
-        setLoading(false);
-      }
-    }
-    loadAll();
+    fetchDashboardData();
   }, []);
 
-  if (loading) return (
-    <div className="container py-4">
-      <h1>Tableau de bord</h1>
-      <p>Chargement…</p>
+  const fetchDashboardData = async () => {
+    try {
+      setLoading(true);
+      // Fetch users
+      const usersResponse = await client.get('/api/auth/users');
+      const users = usersResponse.data;
+      
+      // Fetch entites
+      const entitesResponse = await client.get('/api/entites');
+      const entites = entitesResponse.data;
+      
+      // Fetch produits
+      const produitsResponse = await client.get('/api/produits');
+      const produits = produitsResponse.data;
+
+      setStats({
+        users: users.length,
+        entites: entites.length,
+        produits: produits.length,
+        total: users.length + entites.length + produits.length
+      });
+
+      // Get 5 most recent users
+      setRecentUsers(users.slice(0, 5));
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      toast.error('Erreur lors du chargement des données du tableau de bord');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const StatCard = ({ title, value, icon: Icon, color }) => (
+    <div className="stat-card dashboard-card">
+      <div className="d-flex justify-content-between align-items-center">
+        <div>
+          <h6 className="stat-label">{title}</h6>
+          <h3 className="stat-value mb-0">{value}</h3>
+        </div>
+        <div className={`icon-container bg-${color} bg-opacity-10`}>
+          <Icon className={`text-${color}`} size={24} />
+        </div>
+      </div>
     </div>
   );
 
-  // 1) Camembert : Entités par Secteur
-  const pieData = secteurs.map(sec => ({
-    name: sec.nom,
-    value: entites.filter(e => e.secteur?.id === sec.id).length
-  })).filter(d => d.value > 0);
-  const COLORS = ["#007bff","#28a745","#ffc107","#17a2b8","#6c757d","#dc3545"];
+  const QuickAccessCard = ({ title, description, icon: Icon, color, link }) => (
+    <div className="quick-access-card dashboard-card">
+      <div className="d-flex align-items-center mb-3">
+        <div className={`icon-container bg-${color} bg-opacity-10`}>
+          <Icon className={`text-${color}`} size={20} />
+        </div>
+        <h5 className="mb-0">{title}</h5>
+      </div>
+      <p className="text-muted mb-3">{description}</p>
+      <Button variant={`outline-${color}`} href={link} className="w-100 action-button">
+        Accéder
+      </Button>
+    </div>
+  );
 
-  // 2) BarChart : Top 5 Entités par nombre de Produits
-  const prodCountByEntite = entites.map(e => ({
-    libelle: e.libelle,
-    count: produits.filter(p => p.entiteId === e.id).length
-  }));
-  const barData = prodCountByEntite
-    .sort((a,b) => b.count - a.count)
-    .slice(0,5);
+  if (loading) {
+    return (
+      <Container fluid className="dashboard-container py-4">
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Chargement...</span>
+          </div>
+          <p className="mt-2">Chargement du tableau de bord...</p>
+        </div>
+      </Container>
+    );
+  }
 
   return (
-    <div className="container py-4">
-      <h1 className="mb-4">Tableau de bord</h1>
+    <Container fluid className="dashboard-container py-4">
+      <ToastContainer position="top-center" />
+      
+      {/* Welcome Section */}
+      <div className="welcome-section">
+        <h2>Tableau de bord</h2>
+        <p>Bienvenue dans votre espace d'administration</p>
+      </div>
 
-      {/* Résumé */}
-      <div className="row mb-4">
-        {[
-          { label: "Entités",       value: counts.entites,       bg: "bg-primary" },
-          { label: "Produits",      value: counts.produits,      bg: "bg-success" },
-          { label: "Fonctionnaires",value: counts.fonctionnaires, bg: "bg-warning text-dark" },
-          { label: "Médias",        value: counts.media,         bg: "bg-info text-dark" },
-        ].map(card => (
-          <div key={card.label} className="col-sm-6 col-md-3 mb-3">
-            <div className={`card text-white ${card.bg}`}>
-              <div className="card-body text-center">
-                <h2 className="card-title">{card.value}</h2>
-                <p className="card-text">{card.label}</p>
+      {/* Statistics Cards */}
+      <Row className="g-4 mb-4">
+        <Col md={3}>
+          <StatCard
+            title="Utilisateurs"
+            value={stats.users}
+            icon={FaUsers}
+            color="primary"
+          />
+        </Col>
+        <Col md={3}>
+          <StatCard
+            title="Entités"
+            value={stats.entites}
+            icon={FaBuilding}
+            color="success"
+          />
+        </Col>
+        <Col md={3}>
+          <StatCard
+            title="Produits"
+            value={stats.produits}
+            icon={FaBox}
+            color="warning"
+          />
+        </Col>
+        <Col md={3}>
+          <StatCard
+            title="Total"
+            value={stats.total}
+            icon={FaChartLine}
+            color="info"
+          />
+        </Col>
+      </Row>
+
+      <Row className="g-4">
+        {/* Recent Users Table */}
+        <Col md={8}>
+          <Card className="dashboard-card">
+            <Card.Header className="bg-white">
+              <div className="d-flex justify-content-between align-items-center">
+                <h5 className="mb-0">Utilisateurs récents</h5>
+                <Button variant="outline-primary" size="sm" href="/users" className="action-button">
+                  Voir tout
+                </Button>
               </div>
-            </div>
-          </div>
-        ))}
-      </div>
+            </Card.Header>
+            <Card.Body>
+              <Table hover responsive className="dashboard-table">
+                <thead>
+                  <tr>
+                    <th>Nom</th>
+                    <th>Email</th>
+                    <th>Rôle</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {recentUsers.map((user) => (
+                    <tr key={user.id}>
+                      <td>{user.nom}</td>
+                      <td>{user.email}</td>
+                      <td>
+                        <span className={`role-badge bg-${user.role?.nom === 'ADMIN' ? 'danger' : 'primary'}`}>
+                          {user.role?.nom}
+                        </span>
+                      </td>
+                      <td>
+                        <Button variant="outline-primary" size="sm" className="me-2 action-button">
+                          <FaEdit />
+                        </Button>
+                        <Button variant="outline-danger" size="sm" className="action-button">
+                          <FaTrash />
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </Card.Body>
+          </Card>
+        </Col>
 
-      <div className="row gy-4">
-        {/* Pie: Entités par Secteur */}
-        <div className="col-md-6">
-          <div className="card h-100">
-            <div className="card-header">Entités par Secteur</div>
-            <div className="card-body">
-              {pieData.length === 0 ? (
-                <p>Aucune entité assignée à un secteur.</p>
-              ) : (
-                <PieChart width={300} height={300}>
-                  <Pie
-                    data={pieData}
-                    cx="50%" cy="50%"
-                    outerRadius={100} label
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, idx) => (
-                      <Cell key={idx} fill={COLORS[idx % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Legend verticalAlign="bottom" height={36}/>
-                  <ReTooltip/>
-                </PieChart>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Bar: Top 5 Entités par Produits */}
-        <div className="col-md-6">
-          <div className="card h-100">
-            <div className="card-header">Top 5 Ent. par nombre de Prod.</div>
-            <div className="card-body">
-              {barData.every(d => d.count === 0) ? (
-                <p>Aucune donnée de produit.</p>
-              ) : (
-                <BarChart
-                  width={500}
-                  height={300}
-                  data={barData}
-                  margin={{ top: 20, right: 20, left: 0, bottom: 30 }}
-                >
-                  <CartesianGrid strokeDasharray="3 3"/>
-                  <XAxis dataKey="libelle" angle={-45} textAnchor="end" interval={0}/>
-                  <YAxis allowDecimals={false}/>
-                  <Tooltip/>
-                  <Bar dataKey="count" fill="#007bff"/>
-                </BarChart>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <ToastContainer position="top-center"/>
-    </div>
+        {/* Quick Access Cards */}
+        <Col md={4}>
+          <Row className="g-4">
+            <Col md={12}>
+              <QuickAccessCard
+                title="Gestion des utilisateurs"
+                description="Créer, modifier et gérer les utilisateurs du système"
+                icon={FaUserPlus}
+                color="primary"
+                link="/users"
+              />
+            </Col>
+            <Col md={12}>
+              <QuickAccessCard
+                title="Gestion des entités"
+                description="Gérer les entités et leurs informations"
+                icon={FaBuilding}
+                color="success"
+                link="/entites"
+              />
+            </Col>
+            <Col md={12}>
+              <QuickAccessCard
+                title="Gestion des produits"
+                description="Gérer le catalogue des produits"
+                icon={FaBox}
+                color="warning"
+                link="/produits"
+              />
+            </Col>
+          </Row>
+        </Col>
+      </Row>
+    </Container>
   );
-}
+};
+
+export default Home;

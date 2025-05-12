@@ -21,24 +21,33 @@ public class TypeEntrepriseController {
         return typeEntrepriseService.saveTypeEntreprise(typeEntreprise);
     }
 
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping
     public List<TypeEntreprise> getAll() {
         return typeEntrepriseService.getAllTypeEntreprises();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/{id}")
     public TypeEntreprise getById(@PathVariable Long id) {
         return typeEntrepriseService.getTypeEntrepriseById(id);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public TypeEntreprise update(@PathVariable Long id, @RequestBody TypeEntreprise typeEntreprise) {
+        typeEntreprise.setId(id);
+        return typeEntrepriseService.saveTypeEntreprise(typeEntreprise);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         typeEntrepriseService.deleteTypeEntreprise(id);
     }
+
     @GetMapping("/ping")
     public String ping() {
         return "pong from <service>";
     }
-
 }

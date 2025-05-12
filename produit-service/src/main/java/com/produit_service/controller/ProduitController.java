@@ -27,11 +27,20 @@ public class ProduitController {
         return produitService.getAllProduits();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/{id}")
     public Produit getById(@PathVariable Long id) {
         return produitService.getProduitById(id);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public Produit update(@PathVariable Long id, @RequestBody Produit produit) {
+        produit.setId(id);
+        return produitService.saveProduit(produit);
+    }
+
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/entite/{entiteId}")
     public List<Produit> getByEntite(@PathVariable Long entiteId) {
         return produitService.getProduitsByEntiteId(entiteId);
@@ -42,9 +51,9 @@ public class ProduitController {
     public void delete(@PathVariable Long id) {
         produitService.deleteProduit(id);
     }
+
     @GetMapping("/ping")
     public String ping() {
         return "pong from <service>";
     }
-
 }

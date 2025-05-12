@@ -57,4 +57,19 @@ public class MediaServiceImpl implements MediaService {
     public void delete(Long id) {
         mediaRepository.deleteById(id);
     }
+
+    @Override
+    public Media getById(Long id) {
+        return mediaRepository.findById(id).orElse(null);
+    }
+
+    @Override
+    public Media create(Media media) {
+        return mediaRepository.save(media);
+    }
+
+    @Override
+    public Media update(Media media) {
+        return mediaRepository.save(media);
+    }
 }

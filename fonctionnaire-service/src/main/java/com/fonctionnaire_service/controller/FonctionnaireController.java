@@ -17,24 +17,33 @@ public class FonctionnaireController {
 
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public Fonctionnaire create(@RequestBody Fonctionnaire f) {
-        return service.save(f);
+    public Fonctionnaire create(@RequestBody Fonctionnaire fonctionnaire) {
+        return service.save(fonctionnaire);
     }
 
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping
     public List<Fonctionnaire> getAll() {
         return service.getAll();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/{id}")
     public Fonctionnaire getById(@PathVariable Long id) {
         return service.getById(id);
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/entite/{entiteId}")
     public List<Fonctionnaire> getByEntite(@PathVariable Long entiteId) {
         return service.getByEntiteId(entiteId);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public Fonctionnaire update(@PathVariable Long id, @RequestBody Fonctionnaire fonctionnaire) {
+        fonctionnaire.setId(id);
+        return service.save(fonctionnaire);
     }
 
     @PreAuthorize("hasRole('ADMIN')")
@@ -42,9 +51,9 @@ public class FonctionnaireController {
     public void delete(@PathVariable Long id) {
         service.delete(id);
     }
+
     @GetMapping("/ping")
     public String ping() {
         return "pong from <service>";
     }
-
 }

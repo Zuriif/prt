@@ -12,4 +12,7 @@ public interface MediaService {
     List<Media> getByEntiteId(Long entiteId);
     byte[] getFile(Long id) throws IOException;
     void delete(Long id);
+    Media getById(Long id);
+    Media create(Media media);
+    Media update(Media media);
 }

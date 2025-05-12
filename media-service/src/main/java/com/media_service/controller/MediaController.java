@@ -30,6 +30,24 @@ public class MediaController {
         return mediaService.getAll();
     }
 
+    @GetMapping("/{id}")
+    public Media getById(@PathVariable Long id) {
+        return mediaService.getById(id);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
+    public Media create(@RequestBody Media media) {
+        return mediaService.create(media);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public Media update(@PathVariable Long id, @RequestBody Media media) {
+        media.setId(id);
+        return mediaService.update(media);
+    }
+
     @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/entite/{entiteId}")
     public List<Media> getByEntite(@PathVariable Long entiteId) {
@@ -38,9 +56,15 @@ public class MediaController {
 
     @GetMapping("/download/{id}")
     public ResponseEntity<byte[]> download(@PathVariable Long id) throws IOException {
+        Media media = mediaService.getById(id);
+        if (media == null) {
+            return ResponseEntity.notFound().build();
+        }
+        
         byte[] data = mediaService.getFile(id);
         return ResponseEntity.ok()
-                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .contentType(MediaType.parseMediaType(media.getType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + media.getNomFichier() + "\"")
                 .body(data);
     }
 
@@ -49,9 +73,9 @@ public class MediaController {
     public void delete(@PathVariable Long id) {
         mediaService.delete(id);
     }
+
     @GetMapping("/ping")
     public String ping() {
         return "pong from <service>";
     }
-
 }

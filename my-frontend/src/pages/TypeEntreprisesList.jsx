@@ -7,33 +7,35 @@ import {
 } from "../services/typeEntrepriseService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import Modal from 'react-bootstrap/Modal';
+import Button from 'react-bootstrap/Button';
 
 export default function TypeEntreprisesList() {
-  const [items, setItems] = useState([]);
+  const [types, setTypes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(1);
   const [pageSize] = useState(10);
   const [selectedIds, setSelectedIds] = useState(new Set());
+  const [showModal, setShowModal] = useState(false);
+  const [selectedType, setSelectedType] = useState(null);
 
   useEffect(() => {
     load();
   }, []);
 
-  async function load() {
+  const load = () => {
     setLoading(true);
-    try {
-      const res = await fetchTypeEntreprises();
-      setItems(res.data);
-    } catch {
-      toast.error("Erreur de chargement des types d’entreprise");
-    } finally {
-      setLoading(false);
-    }
-  }
+    fetchTypeEntreprises()
+      .then(({ data }) => {
+        setTypes(data);
+      })
+      .catch(() => toast.error("Impossible de charger les types d'entreprise"))
+      .finally(() => setLoading(false));
+  };
 
   // Filtre + pagination
-  const filtered = items.filter(t =>
+  const filtered = types.filter(t =>
     t.libelle.toLowerCase().includes(search.toLowerCase())
   );
   const totalItems = filtered.length;
@@ -45,13 +47,11 @@ export default function TypeEntreprisesList() {
   const allSelected =
     paged.length > 0 && paged.every(t => selectedIds.has(t.id));
   const toggleAll = () => {
-    const s = new Set(selectedIds);
-    if (allSelected) {
-      paged.forEach(t => s.delete(t.id));
+    if (selectedIds.size === types.length) {
+      setSelectedIds(new Set());
     } else {
-      paged.forEach(t => s.add(t.id));
+      setSelectedIds(new Set(types.map(t => t.id)));
     }
-    setSelectedIds(s);
   };
   const toggleOne = id => {
     const s = new Set(selectedIds);
@@ -61,33 +61,44 @@ export default function TypeEntreprisesList() {
 
   // Suppression en masse
   const handleBulkDelete = async () => {
-    if (!selectedIds.size) return;
-    if (!window.confirm("Supprimer les types sélectionnés ?")) return;
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ces types ?")) {
+      return;
+    }
     try {
       await Promise.all([...selectedIds].map(id => deleteTypeEntreprise(id)));
-      toast.success("Types d’entreprise supprimés");
+      toast.success("Types supprimés");
       setSelectedIds(new Set());
       load();
     } catch {
-      toast.error("Erreur lors de la suppression");
+      toast.error("Impossible de supprimer les types");
     }
+  };
+
+  const handleView = (type) => {
+    setSelectedType(type);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setSelectedType(null);
   };
 
   return (
     <div className="container py-4">
-      {/* Barre d’outils */}
+      {/* Barre d'outils */}
       <div className="d-flex justify-content-between align-items-center mb-3">
-        <h1 className="h3">Gestion des types d’entreprise</h1>
+        <h1 className="h3">Types d'entreprise</h1>
         <div>
           <button
             className="btn btn-danger me-2"
             disabled={!selectedIds.size}
             onClick={handleBulkDelete}
           >
-            Supprimer sélection
+            Delete
           </button>
-          <Link to="/type-entreprises/create" className="btn btn-success">
-            + Nouveau type
+          <Link to="/type-entreprises/new" className="btn btn-success">
+            + Add New Type
           </Link>
         </div>
       </div>
@@ -139,11 +150,17 @@ export default function TypeEntreprisesList() {
                   <td>{t.id}</td>
                   <td>{t.libelle}</td>
                   <td>
+                    <button
+                      className="btn btn-sm btn-info me-2"
+                      onClick={() => handleView(t)}
+                    >
+                      View
+                    </button>
                     <Link
-                      to={`/type-entreprises/${t.id}/edit`}
+                      to={`/type-entreprises/${t.id}`}
                       className="btn btn-sm btn-primary me-2"
                     >
-                      Éditer
+                      Edit
                     </Link>
                     <button
                       className="btn btn-sm btn-danger"
@@ -205,6 +222,26 @@ export default function TypeEntreprisesList() {
       </div>
 
       <ToastContainer position="top-center" />
+
+      {/* Details Modal */}
+      <Modal show={showModal} onHide={handleCloseModal} centered>
+        <Modal.Header closeButton>
+          <Modal.Title>Détails du Type d'entreprise</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {selectedType && (
+            <div>
+              <p><strong>ID:</strong> {selectedType.id}</p>
+              <p><strong>Libellé:</strong> {selectedType.libelle}</p>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={handleCloseModal}>
+            Fermer
+          </Button>
+        </Modal.Footer>
+      </Modal>
     </div>
-);
+  );
 }

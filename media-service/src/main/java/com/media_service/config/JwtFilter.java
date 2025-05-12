@@ -30,6 +30,14 @@ public class JwtFilter extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
 
+        String path = request.getRequestURI();
+        
+        // Skip JWT validation for public endpoints
+        if (path.startsWith("/api/media/download/") || path.equals("/api/media/ping")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String authHeader = request.getHeader("Authorization");
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
@@ -49,23 +57,21 @@ public class JwtFilter extends OncePerRequestFilter {
                     .getBody();
 
             String email = claims.getSubject();
-            String role = claims.get("role", String.class); // ex: ADMIN
+            String role = claims.get("role", String.class);
 
-            // Injecte l'utilisateur et son rôle dans le SecurityContext
             UsernamePasswordAuthenticationToken authToken =
                     new UsernamePasswordAuthenticationToken(
                             email,
                             null,
-                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role)) // très important
+                            Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + role))
                     );
 
             SecurityContextHolder.getContext().setAuthentication(authToken);
+            filterChain.doFilter(request, response);
 
         } catch (JwtException e) {
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return;
         }
-
-        filterChain.doFilter(request, response);
     }
 }

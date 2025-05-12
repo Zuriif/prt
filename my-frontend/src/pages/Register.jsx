@@ -13,7 +13,7 @@ export default function Register() {
     nom: "",
     email: "",
     motDePasse: "",
-    role: "USER",
+    role: "USER"
   });
   const [loading, setLoading] = useState(false);
 
@@ -27,7 +27,7 @@ export default function Register() {
       navigate("/");
     } catch (err) {
       console.error(err);
-      toast.error("Erreur lors de l’inscription");
+      toast.error("Erreur lors de l'inscription");
     } finally {
       setLoading(false);
     }
@@ -81,27 +81,12 @@ export default function Register() {
                 disabled={loading}
               />
             </div>
-            <div className="mb-3">
-              <label htmlFor="role" className="form-label">
-                Rôle
-              </label>
-              <select
-                id="role"
-                className="form-select"
-                value={form.role}
-                onChange={(e) => setForm({ ...form, role: e.target.value })}
-                disabled={loading}
-              >
-                <option value="USER">Utilisateur</option>
-                <option value="ADMIN">Administrateur</option>
-              </select>
-            </div>
             <button
               type="submit"
               className="btn btn-success w-100"
               disabled={loading}
             >
-              {loading ? "Inscription..." : "S’inscrire"}
+              {loading ? "Inscription..." : "S'inscrire"}
             </button>
           </form>
           <div className="text-center mt-3">

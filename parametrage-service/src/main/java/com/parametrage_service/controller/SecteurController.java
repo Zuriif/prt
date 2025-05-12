@@ -21,24 +21,33 @@ public class SecteurController {
         return secteurService.saveSecteur(secteur);
     }
 
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping
     public List<Secteur> getAll() {
         return secteurService.getAllSecteurs();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/{id}")
     public Secteur getById(@PathVariable Long id) {
         return secteurService.getSecteurById(id);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public Secteur update(@PathVariable Long id, @RequestBody Secteur secteur) {
+        secteur.setId(id);
+        return secteurService.saveSecteur(secteur);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         secteurService.deleteSecteur(id);
     }
+
     @GetMapping("/ping")
     public String ping() {
         return "pong from <service>";
     }
-
 }

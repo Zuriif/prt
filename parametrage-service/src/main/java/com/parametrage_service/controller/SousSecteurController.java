@@ -21,25 +21,34 @@ public class SousSecteurController {
         return sousSecteurService.saveSousSecteur(sousSecteur);
     }
 
-    @PreAuthorize("hasRole('USER') or hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping
     public List<SousSecteur> getAll() {
         return sousSecteurService.getAllSousSecteurs();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/{id}")
     public SousSecteur getById(@PathVariable Long id) {
         return sousSecteurService.getSousSecteurById(id);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public SousSecteur update(@PathVariable Long id, @RequestBody SousSecteur sousSecteur) {
+        sousSecteur.setId(id);
+        return sousSecteurService.saveSousSecteur(sousSecteur);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         sousSecteurService.deleteSousSecteur(id);
     }
+
     @GetMapping("/ping")
     public String ping() {
         return "pong from <service>";
     }
-
 }
 	

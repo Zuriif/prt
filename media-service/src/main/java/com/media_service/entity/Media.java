@@ -17,6 +17,7 @@ public class Media {
     private String nomFichier;
     private String cheminFichier;
     private String type; // exemple : image/jpeg, application/pdf
+    private String description;
 
     @Column(name = "entite_id")
     private Long entiteId;

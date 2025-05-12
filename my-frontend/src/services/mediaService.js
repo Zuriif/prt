@@ -5,9 +5,21 @@ import axiosClient from "../api/axiosClient";
 export const fetchMedia = () =>
   axiosClient.get("/api/media");
 
-// Récupérer les médias d’une entité spécifique
+// Récupérer un média par son ID
+export const fetchMediaById = (id) =>
+  axiosClient.get(`/api/media/${id}`);
+
+// Récupérer les médias d'une entité spécifique
 export const fetchMediaByEntite = (entiteId) =>
   axiosClient.get(`/api/media/entite/${entiteId}`);
+
+// Créer un nouveau média
+export const createMedia = (media) =>
+  axiosClient.post("/api/media", media);
+
+// Mettre à jour un média
+export const updateMedia = (id, media) =>
+  axiosClient.put(`/api/media/${id}`, media);
 
 // Uploader un fichier (multipart/form-data)
 export const uploadMedia = (file, entiteId) => {
@@ -21,7 +33,12 @@ export const uploadMedia = (file, entiteId) => {
 
 // Télécharger un média (blob)
 export const downloadMedia = (id) =>
-  axiosClient.get(`/api/media/download/${id}`, { responseType: "blob" });
+  axiosClient.get(`/api/media/download/${id}`, {
+    responseType: 'blob',
+    headers: {
+      'Accept': 'application/octet-stream'
+    }
+  });
 
 // Supprimer un média
 export const deleteMedia = (id) =>

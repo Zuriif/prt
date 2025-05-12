@@ -17,7 +17,7 @@ public class EntiteController {
     
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping
-    public Entite createEntite(@RequestBody Entite entite) {
+    public Entite create(@RequestBody Entite entite) {
         return entiteService.saveEntite(entite);
     }
 
@@ -27,11 +27,20 @@ public class EntiteController {
         return entiteService.getAllEntites();
     }
 
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/{id}")
     public Entite getById(@PathVariable Long id) {
         return entiteService.getEntiteById(id);
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/{id}")
+    public Entite update(@PathVariable Long id, @RequestBody Entite entite) {
+        entite.setId(id);
+        return entiteService.saveEntite(entite);
+    }
+
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
     public void delete(@PathVariable Long id) {
         entiteService.deleteEntite(id);
