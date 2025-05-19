@@ -37,13 +37,25 @@ export default function UserProfile() {
       return;
     }
 
+    // Only require current password if changing password or email
+    if ((formData.newPassword && formData.newPassword.length > 0) || 
+        (formData.email !== initialEmail)) {
+      if (!formData.currentPassword) {
+        toast.error("Le mot de passe actuel est requis pour modifier le mot de passe ou l'email");
+        return;
+      }
+    }
+
     try {
-      await updateUser({
+      // Always use the email from the JWT token for authentication
+      const updateData = {
         nom: formData.nom,
         email: formData.email,
         currentPassword: formData.currentPassword,
         newPassword: formData.newPassword
-      });
+      };
+
+      await updateUser(updateData);
       
       toast.success("Profil mis à jour avec succès");
       setIsEditing(false);
@@ -62,7 +74,8 @@ export default function UserProfile() {
         }, 2000);
       }
     } catch (error) {
-      toast.error(error.message || "Erreur lors de la mise à jour du profil");
+      console.error('Profile update error:', error);
+      toast.error(error.response?.data?.message || error.message || "Erreur lors de la mise à jour du profil");
     }
   };
 

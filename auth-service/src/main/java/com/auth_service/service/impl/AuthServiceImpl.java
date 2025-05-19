@@ -138,24 +138,48 @@ public class AuthServiceImpl implements AuthService {
 
     @Override
     public AuthResponse updateOwnProfile(String email, UpdateProfileRequest req) {
-        Utilisateur user = utilisateurRepository.findByEmail(email)
-            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé"));
-
-        // Check current password
-        if (!passwordEncoder.matches(req.getCurrentPassword(), user.getMotDePasse())) {
-            throw new RuntimeException("Mot de passe actuel incorrect");
+        if (email == null || email.isEmpty()) {
+            throw new RuntimeException("Email de l'utilisateur non fourni");
         }
 
-        // Update name and email if provided
-        if (req.getNom() != null && !req.getNom().isEmpty()) user.setNom(req.getNom());
-        if (req.getEmail() != null && !req.getEmail().isEmpty()) user.setEmail(req.getEmail());
+        Utilisateur user = utilisateurRepository.findByEmail(email)
+            .orElseThrow(() -> new RuntimeException("Utilisateur non trouvé avec l'email: " + email));
+
+        // Check current password only if changing password or email
+        if ((req.getNewPassword() != null && !req.getNewPassword().isEmpty()) || 
+            (req.getEmail() != null && !req.getEmail().isEmpty() && !req.getEmail().equals(email))) {
+            if (req.getCurrentPassword() == null || req.getCurrentPassword().isEmpty()) {
+                throw new RuntimeException("Le mot de passe actuel est requis pour modifier le mot de passe ou l'email");
+            }
+            if (!passwordEncoder.matches(req.getCurrentPassword(), user.getMotDePasse())) {
+                throw new RuntimeException("Mot de passe actuel incorrect");
+            }
+        }
+
+        // Update name if provided
+        if (req.getNom() != null && !req.getNom().isEmpty()) {
+            user.setNom(req.getNom());
+        }
+
+        // Update email if provided
+        if (req.getEmail() != null && !req.getEmail().isEmpty() && !req.getEmail().equals(email)) {
+            // Check if new email is already used
+            if (utilisateurRepository.findByEmail(req.getEmail()).isPresent()) {
+                throw new RuntimeException("Cet email est déjà utilisé");
+            }
+            user.setEmail(req.getEmail());
+        }
 
         // Update password if provided
         if (req.getNewPassword() != null && !req.getNewPassword().isEmpty()) {
             user.setMotDePasse(passwordEncoder.encode(req.getNewPassword()));
         }
 
-        utilisateurRepository.save(user);
+        try {
+            utilisateurRepository.save(user);
+        } catch (Exception e) {
+            throw new RuntimeException("Erreur lors de la sauvegarde des modifications: " + e.getMessage());
+        }
 
         // Return new JWT with updated info
         String token = jwtUtil.generateToken(user);

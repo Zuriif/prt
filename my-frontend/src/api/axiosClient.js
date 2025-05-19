@@ -15,10 +15,14 @@ client.interceptors.request.use(
     const token = localStorage.getItem("token");
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+    } else {
+      // If no token is found, remove any existing Authorization header
+      delete config.headers.Authorization;
     }
     return config;
   },
   error => {
+    console.error('Request interceptor error:', error);
     return Promise.reject(error);
   }
 );
@@ -27,6 +31,8 @@ client.interceptors.request.use(
 client.interceptors.response.use(
   response => response,
   error => {
+    console.error('Response error:', error.response?.data || error.message);
+    
     // Only redirect to login if it's a 401 and we're not already on the login page
     if (error.response?.status === 401 && window.location.pathname !== '/login') {
       // Clear token and redirect to login

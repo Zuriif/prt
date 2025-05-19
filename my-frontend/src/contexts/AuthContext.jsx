@@ -5,6 +5,7 @@ import client from "../api/axiosClient";
 // Décode le payload d'un JWT (sans vérification de signature)
 function decodeJwt(token) {
   try {
+    if (!token) return null;
     const payloadBase64 = token.split(".")[1];
     const payloadJson = atob(payloadBase64);
     const decoded = JSON.parse(payloadJson);
@@ -29,17 +30,30 @@ export function AuthProvider({ children }) {
   const [token, setToken] = useState(localStorage.getItem("token"));
 
   useEffect(() => {
-    if (token) {
-      const decoded = decodeJwt(token);
-      if (decoded) {
-        setUser(decoded);
-      } else {
-        // If token is invalid, clear it
+    const initializeAuth = async () => {
+      try {
+        if (token) {
+          const decoded = decodeJwt(token);
+          if (decoded) {
+            setUser(decoded);
+          } else {
+            // If token is invalid, clear it
+            localStorage.removeItem("token");
+            setToken(null);
+            setUser(null);
+          }
+        }
+      } catch (error) {
+        console.error('Auth initialization error:', error);
         localStorage.removeItem("token");
         setToken(null);
+        setUser(null);
+      } finally {
+        setLoading(false);
       }
-    }
-    setLoading(false);
+    };
+
+    initializeAuth();
   }, [token]);
 
   const login = async (credentials) => {
@@ -84,11 +98,11 @@ export function AuthProvider({ children }) {
 
   const updateUser = async (userData) => {
     try {
-      const response = await client.put("/api/auth/update-profile", userData, {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      const response = await client.put("/api/auth/update-profile", userData);
 
       if (response.data.token) {
         localStorage.setItem("token", response.data.token);
