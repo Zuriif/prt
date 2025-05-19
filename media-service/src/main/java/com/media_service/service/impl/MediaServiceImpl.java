@@ -27,14 +27,17 @@ public class MediaServiceImpl implements MediaService {
         Path filePath = Paths.get(UPLOAD_DIR, fileName);
         Files.write(filePath, file.getBytes());
 
-        Media media = Media.builder()
+        Media.MediaBuilder builder = Media.builder()
                 .nomFichier(file.getOriginalFilename())
                 .cheminFichier(filePath.toString())
-                .type(file.getContentType())
-                .entiteId(entiteId)
-                .build();
+                .type(file.getContentType());
 
-        return mediaRepository.save(media);
+        // Only set entiteId if it's not null
+        if (entiteId != null) {
+            builder.entiteId(entiteId);
+        }
+
+        return mediaRepository.save(builder.build());
     }
 
     @Override

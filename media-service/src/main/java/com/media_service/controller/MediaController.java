@@ -18,11 +18,17 @@ public class MediaController {
     @Autowired
     private MediaService mediaService;
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @PostMapping("/upload")
     public Media upload(@RequestParam("file") MultipartFile file,
-                        @RequestParam("entiteId") Long entiteId) throws IOException {
-        return mediaService.saveMedia(file, entiteId);
+                       @RequestParam(value = "entiteId", required = false) Long entiteId,
+                       @RequestParam(value = "description", required = false) String description) throws IOException {
+        Media media = mediaService.saveMedia(file, entiteId);
+        if (description != null && !description.isEmpty()) {
+            media.setDescription(description);
+            mediaService.update(media);
+        }
+        return media;
     }
 
     @GetMapping

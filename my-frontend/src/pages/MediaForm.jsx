@@ -1,7 +1,7 @@
 // src/pages/MediaForm.jsx
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchMediaById, createMedia, updateMedia } from "../services/mediaService";
+import { fetchMediaById, createMedia, updateMedia, uploadMedia } from "../services/mediaService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
@@ -17,6 +17,8 @@ export default function MediaForm() {
   };
 
   const [form, setForm] = useState(empty);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   useEffect(() => {
     if (isEdit) {
@@ -26,26 +28,59 @@ export default function MediaForm() {
             ...data,
             description: data.description || "",
           });
+          // If there's an existing file, set the preview
+          if (data.url) {
+            setPreviewUrl(data.url);
+          }
         })
         .catch(() => toast.error("Impossible de charger le média"));
     }
   }, [id, isEdit]);
 
+  const handleFileSelect = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      setSelectedFile(file);
+      // Create preview URL for the selected file
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+    }
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     try {
-      const payload = {
-        ...form,
-      };
+      let mediaData = { ...form };
+
+      // If there's a new file selected, upload it first
+      if (selectedFile) {
+        const formData = new FormData();
+        formData.append("file", selectedFile);
+        if (form.description) {
+          formData.append("description", form.description);
+        }
+        
+        const uploadResponse = await uploadMedia(selectedFile);
+        if (uploadResponse?.data) {
+          mediaData = {
+            ...mediaData,
+            nomFichier: selectedFile.name,
+            type: selectedFile.type,
+            ...uploadResponse.data
+          };
+        }
+      }
+
       if (isEdit) {
-        await updateMedia(id, payload);
+        await updateMedia(id, mediaData);
         toast.success("Média mis à jour");
       } else {
-        await createMedia(payload);
+        await createMedia(mediaData);
         toast.success("Média créé");
       }
       navigate("/media");
     } catch (error) {
+      console.error('Error:', error);
       toast.error("Erreur lors de l'enregistrement du média");
     }
   };
@@ -58,6 +93,25 @@ export default function MediaForm() {
       <div className="card shadow-sm">
         <div className="card-body">
           <form onSubmit={handleSubmit}>
+            <div className="mb-3">
+              <label className="form-label">Fichier</label>
+              <input
+                type="file"
+                className="form-control"
+                onChange={handleFileSelect}
+                accept="image/*"
+              />
+              {previewUrl && (
+                <div className="mt-2">
+                  <img 
+                    src={previewUrl} 
+                    alt="Preview" 
+                    style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain' }} 
+                    className="border rounded"
+                  />
+                </div>
+              )}
+            </div>
             <div className="mb-3">
               <label className="form-label">Nom du fichier</label>
               <input

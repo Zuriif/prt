@@ -22,22 +22,18 @@ export const updateMedia = (id, media) =>
   axiosClient.put(`/api/media/${id}`, media);
 
 // Uploader un fichier (multipart/form-data)
-export const uploadMedia = (file, entiteId) => {
+export const uploadMedia = (file) => {
   const formData = new FormData();
   formData.append("file", file);
-  formData.append("entiteId", entiteId);
   return axiosClient.post("/api/media/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 };
 
-// Télécharger un média (blob)
+// Télécharger un fichier
 export const downloadMedia = (id) =>
   axiosClient.get(`/api/media/download/${id}`, {
-    responseType: 'blob',
-    headers: {
-      'Accept': 'application/octet-stream'
-    }
+    responseType: "blob",
   });
 
 // Supprimer un média
