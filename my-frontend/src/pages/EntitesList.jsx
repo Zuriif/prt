@@ -4,71 +4,57 @@ import { Link } from "react-router-dom";
 import { fetchEntites, deleteEntite } from "../services/entiteService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faPlus,
+  faSearch,
+  faEye,
+  faEdit,
+  faTrash,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons";
+import { Table, Container, Form, InputGroup, Alert, Modal, Button, Spinner } from 'react-bootstrap';
 
 export default function EntitesList() {
   const [entites, setEntites] = useState([]);
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedEntite, setSelectedEntite] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     loadEntites();
   }, []);
 
-  const loadEntites = () => {
-    fetchEntites()
-      .then(({ data }) => setEntites(data))
-      .catch(() => toast.error("Impossible de charger les entités"));
+  const loadEntites = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { data } = await fetchEntites();
+      setEntites(data);
+    } catch (error) {
+      console.error('Error fetching entities:', error);
+      setError('Erreur lors de la récupération des entités');
+      toast.error("Erreur lors du chargement des entités");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async id => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette entité ?")) {
-      return;
-    }
     try {
       await deleteEntite(id);
-      toast.success("Entité supprimée");
+      toast.success("Entité supprimée avec succès");
       loadEntites();
-    } catch {
-      toast.error("Impossible de supprimer l'entité");
+      setShowDeleteModal(false);
+    } catch (error) {
+      toast.error("Erreur lors de la suppression");
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ces entités ?")) {
-      return;
-    }
-    try {
-      await Promise.all([...selectedIds].map(id => deleteEntite(id)));
-      toast.success("Entités supprimées");
-      setSelectedIds(new Set());
-      loadEntites();
-    } catch {
-      toast.error("Impossible de supprimer les entités");
-    }
-  };
-
-  const toggleSelect = id => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === entites.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(entites.map(e => e.id)));
-    }
-  };
-
-  const handleView = (entite) => {
+  const handleView = entite => {
     setSelectedEntite(entite);
     setShowModal(true);
   };
@@ -78,113 +64,198 @@ export default function EntitesList() {
     setSelectedEntite(null);
   };
 
+  const filteredEntites = entites.filter(entite => {
+    const searchTermLower = searchTerm.toLowerCase();
+    return (
+      entite.libelle?.toLowerCase().includes(searchTermLower) ||
+      entite.typeEntreprise?.libelle?.toLowerCase().includes(searchTermLower) ||
+      entite.adresse?.toLowerCase().includes(searchTermLower) ||
+      entite.region?.toLowerCase().includes(searchTermLower)
+    );
+  });
+
+  if (loading) {
+    return (
+      <Container className="mt-4 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </Spinner>
+        <p className="mt-2">Chargement des entités...</p>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="mt-4">
+        <Alert variant="danger">
+          <Alert.Heading>Erreur</Alert.Heading>
+          <p>{error}</p>
+          <Button variant="outline-danger" onClick={loadEntites}>
+            Réessayer
+          </Button>
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
-    <div className="container py-4">
+    <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3">Entités</h1>
-        <div>
-          <button
-            className="btn btn-danger me-2"
-            disabled={!selectedIds.size}
-            onClick={handleBulkDelete}
+        <h2>Gestion des Entités</h2>
+        <Link to="/entites/new" className="btn btn-primary">
+          <FontAwesomeIcon icon={faPlus} className="me-2" />
+          Nouvelle Entité
+        </Link>
+      </div>
+      
+      <InputGroup className="mb-4">
+        <Form.Control
+          placeholder="Rechercher une entité par libellé, type, adresse ou région..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        {searchTerm && (
+          <Button 
+            variant="outline-secondary" 
+            onClick={() => setSearchTerm('')}
           >
-            Delete
-          </button>
-          <Link to="/entites/new" className="btn btn-success">
-            + Add New Entite
-          </Link>
-        </div>
-      </div>
+            <FontAwesomeIcon icon={faTimes} />
+          </Button>
+        )}
+      </InputGroup>
 
-      <div className="card shadow-sm">
-        <div className="card-body">
-          <div className="table-responsive">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.size === entites.length}
-                      onChange={toggleSelectAll}
-                    />
-                  </th>
-                  <th>ID</th>
-                  <th>Libellé</th>
-                  <th>Type</th>
-                  <th>Adresse</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {entites.map(e => (
-                  <tr key={e.id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(e.id)}
-                        onChange={() => toggleSelect(e.id)}
-                      />
-                    </td>
-                    <td>{e.id}</td>
-                    <td>{e.libelle}</td>
-                    <td>{e.typeEntreprise?.libelle}</td>
-                    <td>{e.adresse}</td>
-                    <td>
-                      <button
-                        className="btn btn-sm btn-info me-2"
-                        onClick={() => handleView(e)}
-                      >
-                        View
-                      </button>
-                      <Link
-                        to={`/entites/${e.id}`}
-                        className="btn btn-sm btn-primary me-2"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDelete(e.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <ToastContainer position="top-center" />
+      {filteredEntites.length === 0 ? (
+        <Alert variant="info">
+          {searchTerm 
+            ? "Aucune entité ne correspond à votre recherche"
+            : "Aucune entité trouvée"}
+        </Alert>
+      ) : (
+        <Table striped bordered hover responsive>
+          <thead>
+            <tr>
+              <th>Libellé</th>
+              <th>Type</th>
+              <th>Adresse</th>
+              <th>Région</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredEntites.map(entite => (
+              <tr key={entite.id}>
+                <td>{entite.libelle}</td>
+                <td>
+                  <span className="badge bg-primary">
+                    {entite.typeEntreprise?.libelle}
+                  </span>
+                </td>
+                <td>{entite.adresse}</td>
+                <td>{entite.region}</td>
+                <td>
+                  <Button
+                    variant="info"
+                    size="sm"
+                    className="me-2"
+                    onClick={() => handleView(entite)}
+                    title="Voir"
+                  >
+                    <FontAwesomeIcon icon={faEye} />
+                  </Button>
+                  <Link
+                    to={`/entites/${entite.id}`}
+                    className="btn btn-warning btn-sm me-2"
+                    title="Modifier"
+                  >
+                    <FontAwesomeIcon icon={faEdit} />
+                  </Link>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedEntite(entite);
+                      setShowDeleteModal(true);
+                    }}
+                    title="Supprimer"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
 
-      {/* Details Modal */}
-      <Modal show={showModal} onHide={handleCloseModal} centered>
+      {/* Modal pour voir les détails */}
+      <Modal
+        show={showModal}
+        onHide={handleCloseModal}
+        centered
+      >
         <Modal.Header closeButton>
           <Modal.Title>Détails de l'Entité</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedEntite && (
-            <div>
-              <p><strong>ID:</strong> {selectedEntite.id}</p>
-              <p><strong>Libellé:</strong> {selectedEntite.libelle}</p>
-              <p><strong>Type:</strong> {selectedEntite.typeEntreprise?.libelle}</p>
-              <p><strong>Adresse:</strong> {selectedEntite.adresse}</p>
-              <p><strong>Code Postal:</strong> {selectedEntite.codePostal}</p>
-              <p><strong>Région:</strong> {selectedEntite.region}</p>
-              <p><strong>Téléphone:</strong> {selectedEntite.telephone}</p>
-              <p><strong>Fax:</strong> {selectedEntite.fax}</p>
-              <p><strong>Email:</strong> {selectedEntite.email}</p>
-              <p><strong>Source:</strong> {selectedEntite.source}</p>
-              <p><strong>Effectif:</strong> {selectedEntite.effectif}</p>
-              <p><strong>Forme Juridique:</strong> {selectedEntite.formeJuridique}</p>
-              <p><strong>Capital Social:</strong> {selectedEntite.capitalSocial}</p>
-              <p><strong>Date Création:</strong> {selectedEntite.dateCreation}</p>
-              <p><strong>Activités:</strong> {selectedEntite.activites}</p>
-              <p><strong>Produits:</strong> {selectedEntite.produits}</p>
-              <p><strong>Présentation:</strong> {selectedEntite.presentation}</p>
-              <p><strong>Marque Représentée:</strong> {selectedEntite.marqueRepresentee}</p>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <strong>Libellé:</strong> {selectedEntite.libelle}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Type:</strong> {selectedEntite.typeEntreprise?.libelle}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Adresse:</strong> {selectedEntite.adresse}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Code Postal:</strong> {selectedEntite.codePostal}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Région:</strong> {selectedEntite.region}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Téléphone:</strong> {selectedEntite.telephone}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Fax:</strong> {selectedEntite.fax}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Email:</strong> {selectedEntite.email}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Source:</strong> {selectedEntite.source}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Effectif:</strong> {selectedEntite.effectif}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Forme Juridique:</strong> {selectedEntite.formeJuridique}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Capital Social:</strong> {selectedEntite.capitalSocial}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Date de Création:</strong>{" "}
+                {new Date(selectedEntite.dateCreation).toLocaleDateString()}
+              </div>
+              <div className="col-12 mb-3">
+                <strong>Activités:</strong>
+                <p>{selectedEntite.activites}</p>
+              </div>
+              <div className="col-12 mb-3">
+                <strong>Produits:</strong>
+                <p>{selectedEntite.produits}</p>
+              </div>
+              <div className="col-12 mb-3">
+                <strong>Présentation:</strong>
+                <p>{selectedEntite.presentation}</p>
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Marque Représentée:</strong>{" "}
+                {selectedEntite.marqueRepresentee}
+              </div>
             </div>
           )}
         </Modal.Body>
@@ -194,6 +265,33 @@ export default function EntitesList() {
           </Button>
         </Modal.Footer>
       </Modal>
-    </div>
+
+      {/* Modal de confirmation de suppression */}
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmer la suppression</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Êtes-vous sûr de vouloir supprimer cette entité ?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Annuler
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={() => handleDelete(selectedEntite?.id)}
+          >
+            Supprimer
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <ToastContainer />
+    </Container>
   );
 }

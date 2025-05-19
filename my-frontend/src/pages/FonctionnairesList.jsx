@@ -1,77 +1,60 @@
 // src/pages/FonctionnairesList.jsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import {
-  fetchFonctionnaires,
-  deleteFonctionnaire,
-} from "../services/fonctionnaireService";
+import { fetchFonctionnaires, deleteFonctionnaire } from "../services/fonctionnaireService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faPlus,
+  faSearch,
+  faEye,
+  faEdit,
+  faTrash,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons";
+import { Table, Container, Form, InputGroup, Alert, Modal, Button, Spinner } from 'react-bootstrap';
 
 export default function FonctionnairesList() {
   const [fonctionnaires, setFonctionnaires] = useState([]);
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedFonctionnaire, setSelectedFonctionnaire] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     loadFonctionnaires();
   }, []);
 
-  const loadFonctionnaires = () => {
-    fetchFonctionnaires()
-      .then(({ data }) => setFonctionnaires(data))
-      .catch(() => toast.error("Impossible de charger les fonctionnaires"));
+  const loadFonctionnaires = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { data } = await fetchFonctionnaires();
+      setFonctionnaires(data);
+    } catch (error) {
+      console.error('Error fetching fonctionnaires:', error);
+      setError('Erreur lors de la récupération des fonctionnaires');
+      toast.error("Erreur lors du chargement des fonctionnaires");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async id => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce fonctionnaire ?")) {
-      return;
-    }
     try {
       await deleteFonctionnaire(id);
-      toast.success("Fonctionnaire supprimé");
+      toast.success("Fonctionnaire supprimé avec succès");
       loadFonctionnaires();
-    } catch {
-      toast.error("Impossible de supprimer le fonctionnaire");
+      setShowDeleteModal(false);
+    } catch (error) {
+      toast.error("Erreur lors de la suppression");
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ces fonctionnaires ?")) {
-      return;
-    }
-    try {
-      await Promise.all([...selectedIds].map(id => deleteFonctionnaire(id)));
-      toast.success("Fonctionnaires supprimés");
-      setSelectedIds(new Set());
-      loadFonctionnaires();
-    } catch {
-      toast.error("Impossible de supprimer les fonctionnaires");
-    }
-  };
-
-  const toggleSelect = id => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === fonctionnaires.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(fonctionnaires.map(e => e.id)));
-    }
-  };
-
-  const handleView = (fonctionnaire) => {
+  const handleView = fonctionnaire => {
     setSelectedFonctionnaire(fonctionnaire);
     setShowModal(true);
   };
@@ -81,105 +64,157 @@ export default function FonctionnairesList() {
     setSelectedFonctionnaire(null);
   };
 
+  const filteredFonctionnaires = fonctionnaires.filter(fonctionnaire => {
+    const searchTermLower = searchTerm.toLowerCase();
+    return (
+      fonctionnaire.nom?.toLowerCase().includes(searchTermLower) ||
+      fonctionnaire.prenom?.toLowerCase().includes(searchTermLower) ||
+      fonctionnaire.email?.toLowerCase().includes(searchTermLower) ||
+      fonctionnaire.profil?.toLowerCase().includes(searchTermLower)
+    );
+  });
+
+  if (loading) {
+    return (
+      <Container className="mt-4 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </Spinner>
+        <p className="mt-2">Chargement des fonctionnaires...</p>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="mt-4">
+        <Alert variant="danger">
+          <Alert.Heading>Erreur</Alert.Heading>
+          <p>{error}</p>
+          <Button variant="outline-danger" onClick={loadFonctionnaires}>
+            Réessayer
+          </Button>
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
-    <div className="container py-4">
+    <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3">Fonctionnaires</h1>
-        <div>
-          <button
-            className="btn btn-danger me-2"
-            disabled={!selectedIds.size}
-            onClick={handleBulkDelete}
+        <h2>Gestion des Fonctionnaires</h2>
+        <Link to="/fonctionnaires/new" className="btn btn-primary">
+          <FontAwesomeIcon icon={faPlus} className="me-2" />
+          Nouveau Fonctionnaire
+        </Link>
+      </div>
+      
+      <InputGroup className="mb-4">
+        <Form.Control
+          placeholder="Rechercher un fonctionnaire par nom, prénom, email ou profil..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        {searchTerm && (
+          <Button 
+            variant="outline-secondary" 
+            onClick={() => setSearchTerm('')}
           >
-            Delete
-          </button>
-          <Link to="/fonctionnaires/new" className="btn btn-success">
-            + Add New Fonctionnaire
-          </Link>
-        </div>
-      </div>
+            <FontAwesomeIcon icon={faTimes} />
+          </Button>
+        )}
+      </InputGroup>
 
-      <div className="card shadow-sm">
-        <div className="card-body">
-          <div className="table-responsive">
-            <table className="table table-striped table-hover align-middle">
-              <thead>
-                <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.size === fonctionnaires.length}
-                      onChange={toggleSelectAll}
-                    />
-                  </th>
-                  <th>ID</th>
-                  <th>Nom</th>
-                  <th>Prénom</th>
-                  <th>Email</th>
-                  <th>GSM</th>
-                  <th>Profil</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {fonctionnaires.map(f => (
-                  <tr key={f.id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(f.id)}
-                        onChange={() => toggleSelect(f.id)}
-                      />
-                    </td>
-                    <td>{f.id}</td>
-                    <td>{f.nom}</td>
-                    <td>{f.prenom}</td>
-                    <td>{f.email}</td>
-                    <td>{f.gsm}</td>
-                    <td>{f.profil}</td>
-                    <td>
-                      <button
-                        className="btn btn-sm btn-info me-2"
-                        onClick={() => handleView(f)}
-                      >
-                        View
-                      </button>
-                      <Link
-                        to={`/fonctionnaires/${f.id}`}
-                        className="btn btn-sm btn-primary me-2"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDelete(f.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <ToastContainer position="top-center" />
+      {filteredFonctionnaires.length === 0 ? (
+        <Alert variant="info">
+          {searchTerm 
+            ? "Aucun fonctionnaire ne correspond à votre recherche"
+            : "Aucun fonctionnaire trouvé"}
+        </Alert>
+      ) : (
+        <Table striped bordered hover responsive>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Prénom</th>
+              <th>Email</th>
+              <th>Profil</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredFonctionnaires.map(fonctionnaire => (
+              <tr key={fonctionnaire.id}>
+                <td>{fonctionnaire.nom}</td>
+                <td>{fonctionnaire.prenom}</td>
+                <td>{fonctionnaire.email}</td>
+                <td>
+                  <span className="badge bg-primary">
+                    {fonctionnaire.profil}
+                  </span>
+                </td>
+                <td>
+                  <Button
+                    variant="info"
+                    size="sm"
+                    className="me-2"
+                    onClick={() => handleView(fonctionnaire)}
+                    title="Voir"
+                  >
+                    <FontAwesomeIcon icon={faEye} />
+                  </Button>
+                  <Link
+                    to={`/fonctionnaires/${fonctionnaire.id}`}
+                    className="btn btn-warning btn-sm me-2"
+                    title="Modifier"
+                  >
+                    <FontAwesomeIcon icon={faEdit} />
+                  </Link>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedFonctionnaire(fonctionnaire);
+                      setShowDeleteModal(true);
+                    }}
+                    title="Supprimer"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
 
-      {/* Details Modal */}
-      <Modal show={showModal} onHide={handleCloseModal} centered>
+      {/* Modal pour voir les détails */}
+      <Modal
+        show={showModal}
+        onHide={handleCloseModal}
+        centered
+      >
         <Modal.Header closeButton>
           <Modal.Title>Détails du Fonctionnaire</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedFonctionnaire && (
-            <div>
-              <p><strong>ID:</strong> {selectedFonctionnaire.id}</p>
-              <p><strong>Nom:</strong> {selectedFonctionnaire.nom}</p>
-              <p><strong>Prénom:</strong> {selectedFonctionnaire.prenom}</p>
-              <p><strong>Email:</strong> {selectedFonctionnaire.email}</p>
-              <p><strong>GSM:</strong> {selectedFonctionnaire.gsm}</p>
-              <p><strong>Entite:</strong> {selectedFonctionnaire.profil}</p>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <strong>Nom:</strong> {selectedFonctionnaire.nom}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Prénom:</strong> {selectedFonctionnaire.prenom}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Email:</strong> {selectedFonctionnaire.email}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>GSM:</strong> {selectedFonctionnaire.gsm}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Profil:</strong> {selectedFonctionnaire.profil}
+              </div>
             </div>
           )}
         </Modal.Body>
@@ -189,6 +224,33 @@ export default function FonctionnairesList() {
           </Button>
         </Modal.Footer>
       </Modal>
-    </div>
+
+      {/* Modal de confirmation de suppression */}
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmer la suppression</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Êtes-vous sûr de vouloir supprimer ce fonctionnaire ?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Annuler
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={() => handleDelete(selectedFonctionnaire?.id)}
+          >
+            Supprimer
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <ToastContainer />
+    </Container>
   );
 }

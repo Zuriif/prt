@@ -7,74 +7,57 @@ import {
 } from "../services/typeEntrepriseService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faPlus,
+  faSearch,
+  faEye,
+  faEdit,
+  faTrash,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons";
+import { Table, Container, Form, InputGroup, Alert, Modal, Button, Spinner } from 'react-bootstrap';
 
 export default function TypeEntreprisesList() {
   const [types, setTypes] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [pageSize] = useState(10);
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [showModal, setShowModal] = useState(false);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedType, setSelectedType] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
-    load();
+    loadTypes();
   }, []);
 
-  const load = () => {
-    setLoading(true);
-    fetchTypeEntreprises()
-      .then(({ data }) => {
-        setTypes(data);
-      })
-      .catch(() => toast.error("Impossible de charger les types d'entreprise"))
-      .finally(() => setLoading(false));
-  };
-
-  // Filtre + pagination
-  const filtered = types.filter(t =>
-    t.libelle.toLowerCase().includes(search.toLowerCase())
-  );
-  const totalItems = filtered.length;
-  const pageCount = Math.ceil(totalItems / pageSize);
-  const startIdx = (page - 1) * pageSize;
-  const paged = filtered.slice(startIdx, startIdx + pageSize);
-
-  // Sélection
-  const allSelected =
-    paged.length > 0 && paged.every(t => selectedIds.has(t.id));
-  const toggleAll = () => {
-    if (selectedIds.size === types.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(types.map(t => t.id)));
-    }
-  };
-  const toggleOne = id => {
-    const s = new Set(selectedIds);
-    s.has(id) ? s.delete(id) : s.add(id);
-    setSelectedIds(s);
-  };
-
-  // Suppression en masse
-  const handleBulkDelete = async () => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ces types ?")) {
-      return;
-    }
+  const loadTypes = async () => {
     try {
-      await Promise.all([...selectedIds].map(id => deleteTypeEntreprise(id)));
-      toast.success("Types supprimés");
-      setSelectedIds(new Set());
-      load();
-    } catch {
-      toast.error("Impossible de supprimer les types");
+      setLoading(true);
+      setError(null);
+      const { data } = await fetchTypeEntreprises();
+      setTypes(data);
+    } catch (error) {
+      console.error('Error fetching types:', error);
+      setError('Erreur lors de la récupération des types');
+      toast.error("Erreur lors du chargement des types");
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleView = (type) => {
+  const handleDelete = async id => {
+    try {
+      await deleteTypeEntreprise(id);
+      toast.success("Type supprimé avec succès");
+      loadTypes();
+      setShowDeleteModal(false);
+    } catch (error) {
+      toast.error("Erreur lors de la suppression");
+    }
+  };
+
+  const handleView = type => {
     setSelectedType(type);
     setShowModal(true);
   };
@@ -84,155 +67,133 @@ export default function TypeEntreprisesList() {
     setSelectedType(null);
   };
 
+  const filteredTypes = types.filter(type => {
+    const searchTermLower = searchTerm.toLowerCase();
+    return type.libelle?.toLowerCase().includes(searchTermLower);
+  });
+
+  if (loading) {
+    return (
+      <Container className="mt-4 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </Spinner>
+        <p className="mt-2">Chargement des types...</p>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="mt-4">
+        <Alert variant="danger">
+          <Alert.Heading>Erreur</Alert.Heading>
+          <p>{error}</p>
+          <Button variant="outline-danger" onClick={loadTypes}>
+            Réessayer
+          </Button>
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
-    <div className="container py-4">
-      {/* Barre d'outils */}
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <h1 className="h3">Types d'entreprise</h1>
-        <div>
-          <button
-            className="btn btn-danger me-2"
-            disabled={!selectedIds.size}
-            onClick={handleBulkDelete}
-          >
-            Delete
-          </button>
-          <Link to="/type-entreprises/new" className="btn btn-success">
-            + Add New Type
-          </Link>
-        </div>
+    <Container className="mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2>Gestion des Types d'Entreprise</h2>
+        <Link to="/type-entreprises/new" className="btn btn-primary">
+          <FontAwesomeIcon icon={faPlus} className="me-2" />
+          Nouveau Type
+        </Link>
       </div>
 
-      {/* Recherche */}
-      <div className="mb-3">
-        <input
-          type="text"
-          className="form-control"
-          placeholder="Rechercher par libellé..."
-          value={search}
-          onChange={e => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
+      <InputGroup className="mb-4">
+        <Form.Control
+          placeholder="Rechercher un type par libellé..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
         />
-      </div>
+        {searchTerm && (
+          <Button 
+            variant="outline-secondary" 
+            onClick={() => setSearchTerm('')}
+          >
+            <FontAwesomeIcon icon={faTimes} />
+          </Button>
+        )}
+      </InputGroup>
 
-      {/* Tableau */}
-      {loading ? (
-        <div>Chargement…</div>
+      {filteredTypes.length === 0 ? (
+        <Alert variant="info">
+          {searchTerm 
+            ? "Aucun type ne correspond à votre recherche"
+            : "Aucun type trouvé"}
+        </Alert>
       ) : (
-        <div className="table-responsive">
-          <table className="table table-striped table-hover align-middle">
-            <thead>
-              <tr>
-                <th>
-                  <input
-                    type="checkbox"
-                    checked={allSelected}
-                    onChange={toggleAll}
-                  />
-                </th>
-                <th>ID</th>
-                <th>Libellé</th>
-                <th>Actions</th>
+        <Table striped bordered hover responsive>
+          <thead>
+            <tr>
+              <th>Libellé</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredTypes.map(type => (
+              <tr key={type.id}>
+                <td>{type.libelle}</td>
+                <td>
+                  <Button
+                    variant="info"
+                    size="sm"
+                    className="me-2"
+                    onClick={() => handleView(type)}
+                    title="Voir"
+                  >
+                    <FontAwesomeIcon icon={faEye} />
+                  </Button>
+                  <Link
+                    to={`/type-entreprises/${type.id}`}
+                    className="btn btn-warning btn-sm me-2"
+                    title="Modifier"
+                  >
+                    <FontAwesomeIcon icon={faEdit} />
+                  </Link>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedType(type);
+                      setShowDeleteModal(true);
+                    }}
+                    title="Supprimer"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </Button>
+                </td>
               </tr>
-            </thead>
-            <tbody>
-              {paged.map(t => (
-                <tr key={t.id}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(t.id)}
-                      onChange={() => toggleOne(t.id)}
-                    />
-                  </td>
-                  <td>{t.id}</td>
-                  <td>{t.libelle}</td>
-                  <td>
-                    <button
-                      className="btn btn-sm btn-info me-2"
-                      onClick={() => handleView(t)}
-                    >
-                      View
-                    </button>
-                    <Link
-                      to={`/type-entreprises/${t.id}`}
-                      className="btn btn-sm btn-primary me-2"
-                    >
-                      Edit
-                    </Link>
-                    <button
-                      className="btn btn-sm btn-danger"
-                      onClick={async () => {
-                        if (window.confirm("Supprimer ce type ?")) {
-                          await deleteTypeEntreprise(t.id);
-                          load();
-                        }
-                      }}
-                    >
-                      Supprimer
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+            ))}
+          </tbody>
+        </Table>
       )}
 
-      {/* Pagination */}
-      <div className="d-flex justify-content-between align-items-center mt-3">
-        <small className="text-muted">
-          {startIdx + 1}–{startIdx + paged.length} sur {totalItems}
-        </small>
-        <nav>
-          <ul className="pagination mb-0">
-            <li className={`page-item ${page === 1 && "disabled"}`}>
-              <button
-                className="page-link"
-                onClick={() => setPage(p => Math.max(p - 1, 1))}
-              >
-                Précédent
-              </button>
-            </li>
-            {[...Array(pageCount)].map((_, i) => (
-              <li
-                key={i}
-                className={`page-item ${page === i + 1 && "active"}`}
-              >
-                <button
-                  className="page-link"
-                  onClick={() => setPage(i + 1)}
-                >
-                  {i + 1}
-                </button>
-              </li>
-            ))}
-            <li className={`page-item ${page === pageCount && "disabled"}`}>
-              <button
-                className="page-link"
-                onClick={() => setPage(p => Math.min(p + 1, pageCount))}
-              >
-                Suivant
-              </button>
-            </li>
-          </ul>
-        </nav>
-      </div>
-
-      <ToastContainer position="top-center" />
-
-      {/* Details Modal */}
-      <Modal show={showModal} onHide={handleCloseModal} centered>
+      {/* Modal pour voir les détails */}
+      <Modal
+        show={showModal}
+        onHide={handleCloseModal}
+        centered
+      >
         <Modal.Header closeButton>
-          <Modal.Title>Détails du Type d'entreprise</Modal.Title>
+          <Modal.Title>Détails du Type d'Entreprise</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedType && (
-            <div>
-              <p><strong>ID:</strong> {selectedType.id}</p>
-              <p><strong>Libellé:</strong> {selectedType.libelle}</p>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <strong>ID:</strong> {selectedType.id}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Libellé:</strong> {selectedType.libelle}
+              </div>
             </div>
           )}
         </Modal.Body>
@@ -242,6 +203,33 @@ export default function TypeEntreprisesList() {
           </Button>
         </Modal.Footer>
       </Modal>
-    </div>
+
+      {/* Modal de confirmation de suppression */}
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmer la suppression</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Êtes-vous sûr de vouloir supprimer ce type ?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Annuler
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={() => handleDelete(selectedType?.id)}
+          >
+            Supprimer
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <ToastContainer />
+    </Container>
   );
 }

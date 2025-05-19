@@ -22,9 +22,7 @@ export const updateMedia = (id, media) =>
   axiosClient.put(`/api/media/${id}`, media);
 
 // Uploader un fichier (multipart/form-data)
-export const uploadMedia = (file) => {
-  const formData = new FormData();
-  formData.append("file", file);
+export const uploadMedia = (formData) => {
   return axiosClient.post("/api/media/upload", formData, {
     headers: { "Content-Type": "multipart/form-data" },
   });

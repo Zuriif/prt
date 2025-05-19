@@ -1,102 +1,157 @@
-// src/pages/SousSecteurForm.jsx
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import {
-  fetchSousSecteur,
-  createSousSecteur,
-  updateSousSecteur,
-} from "../services/sousSecteurService";
+import { useNavigate, useParams } from "react-router-dom";
+import { fetchSousSecteur, createSousSecteur, updateSousSecteur } from "../services/sousSecteurService";
 import { fetchSecteurs } from "../services/secteurService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { Container, Form, Button, Alert, Spinner } from 'react-bootstrap';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import { faSave, faTimes } from "@fortawesome/free-solid-svg-icons";
 
 export default function SousSecteurForm() {
-  const { id } = useParams();
   const navigate = useNavigate();
-  const isEdit = Boolean(id);
-
-  const emptyForm = { nom: "", secteurId: "" };
-  const [form, setForm] = useState(emptyForm);
+  const { id } = useParams();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [secteurs, setSecteurs] = useState([]);
+  const [formData, setFormData] = useState({
+    nom: "",
+    secteurId: ""
+  });
 
   useEffect(() => {
-    fetchSecteurs().then(r => setSecteurs(r.data));
-    if (isEdit) {
-      fetchSousSecteur(id)
-        .then(({ data }) =>
-          setForm({
-            nom: data.nom,
-            secteurId: data.secteur?.id || "",
-          })
-        )
-        .catch(() => toast.error("Impossible de charger le sous-secteur"));
+    loadSecteurs();
+    if (id) {
+      loadSousSecteur();
     }
   }, [id]);
 
-  const handleSubmit = async e => {
-    e.preventDefault();
-    const payload = {
-      nom: form.nom,
-      secteur: form.secteurId ? { id: Number(form.secteurId) } : null,
-    };
+  const loadSecteurs = async () => {
     try {
-      if (isEdit) {
-        await updateSousSecteur(id, payload);
-        toast.success("Sous-secteur mis à jour");
-      } else {
-        await createSousSecteur(payload);
-        toast.success("Sous-secteur créé");
-      }
-      navigate("/sous-secteurs");
-    } catch {
-      toast.error("Erreur lors de l'enregistrement");
+      const { data } = await fetchSecteurs();
+      setSecteurs(data);
+    } catch (error) {
+      console.error('Error fetching secteurs:', error);
+      toast.error("Erreur lors du chargement des secteurs");
     }
   };
 
+  const loadSousSecteur = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { data } = await fetchSousSecteur(id);
+      setFormData(data);
+    } catch (error) {
+      console.error('Error fetching sous-secteur:', error);
+      setError('Erreur lors de la récupération du sous-secteur');
+      toast.error("Erreur lors du chargement du sous-secteur");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      setLoading(true);
+      setError(null);
+      if (id) {
+        await updateSousSecteur(id, formData);
+        toast.success("Sous-secteur mis à jour avec succès");
+      } else {
+        await createSousSecteur(formData);
+        toast.success("Sous-secteur créé avec succès");
+      }
+      navigate("/sous-secteurs");
+    } catch (error) {
+      console.error('Error saving sous-secteur:', error);
+      setError('Erreur lors de la sauvegarde du sous-secteur');
+      toast.error("Erreur lors de la sauvegarde");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  if (loading && id) {
+    return (
+      <Container className="mt-4 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </Spinner>
+        <p className="mt-2">Chargement du sous-secteur...</p>
+      </Container>
+    );
+  }
+
   return (
-    <div className="container py-4">
-      <h1 className="h3 mb-4">
-        {isEdit ? "Modifier un sous-secteur" : "Créer un sous-secteur"}
-      </h1>
-      <form onSubmit={handleSubmit}>
-        <div className="mb-3">
-          <label className="form-label">Nom</label>
-          <input
+    <Container className="mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2>{id ? "Modifier le Sous-Secteur" : "Nouveau Sous-Secteur"}</h2>
+        <Button variant="secondary" onClick={() => navigate("/sous-secteurs")}>
+          <FontAwesomeIcon icon={faTimes} className="me-2" />
+          Annuler
+        </Button>
+      </div>
+
+      {error && (
+        <Alert variant="danger" className="mb-4">
+          <Alert.Heading>Erreur</Alert.Heading>
+          <p>{error}</p>
+        </Alert>
+      )}
+
+      <Form onSubmit={handleSubmit}>
+        <Form.Group className="mb-3">
+          <Form.Label>Nom du sous-secteur</Form.Label>
+          <Form.Control
             type="text"
-            className="form-control"
-            value={form.nom}
-            onChange={e => setForm({ ...form, nom: e.target.value })}
+            name="nom"
+            value={formData.nom}
+            onChange={handleChange}
             required
+            placeholder="Entrez le nom du sous-secteur"
           />
-        </div>
-        <div className="mb-3">
-          <label className="form-label">Secteur</label>
-          <select
-            className="form-select"
-            value={form.secteurId}
-            onChange={e => setForm({ ...form, secteurId: e.target.value })}
+        </Form.Group>
+
+        <Form.Group className="mb-3">
+          <Form.Label>Secteur parent</Form.Label>
+          <Form.Select
+            name="secteurId"
+            value={formData.secteurId}
+            onChange={handleChange}
             required
           >
-            <option value="">— Choisir un secteur —</option>
-            {secteurs.map(s => (
-              <option key={s.id} value={s.id}>
-                {s.nom}
+            <option value="">Sélectionnez un secteur</option>
+            {secteurs.map(secteur => (
+              <option key={secteur.id} value={secteur.id}>
+                {secteur.nom}
               </option>
             ))}
-          </select>
+          </Form.Select>
+        </Form.Group>
+
+        <div className="d-flex justify-content-end gap-2">
+          <Button variant="secondary" onClick={() => navigate("/sous-secteurs")}>
+            <FontAwesomeIcon icon={faTimes} className="me-2" />
+            Annuler
+          </Button>
+          <Button variant="primary" type="submit" disabled={loading}>
+            <FontAwesomeIcon icon={faSave} className="me-2" />
+            {loading ? "Enregistrement..." : "Enregistrer"}
+          </Button>
         </div>
-        <button type="submit" className="btn btn-primary me-2">
-          {isEdit ? "Mettre à jour" : "Créer"}
-        </button>
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={() => navigate("/sous-secteurs")}
-        >
-          Annuler
-        </button>
-      </form>
-      <ToastContainer position="top-center" />
-    </div>
-);
-}
+      </Form>
+
+      <ToastContainer />
+    </Container>
+  );
+} 

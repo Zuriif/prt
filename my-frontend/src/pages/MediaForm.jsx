@@ -1,27 +1,52 @@
 // src/pages/MediaForm.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { fetchMediaById, createMedia, updateMedia, uploadMedia } from "../services/mediaService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faSave,
+  faTimes,
+  faArrowLeft,
+  faUpload,
+  faImage,
+  faLink,
+  faAlignLeft
+} from "@fortawesome/free-solid-svg-icons";
+import { AuthContext } from "../contexts/AuthContext";
 
 export default function MediaForm() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useContext(AuthContext);
   const isEdit = Boolean(id);
 
   const empty = {
     nomFichier: "",
     url: "",
     description: "",
+    entiteId: null
   };
 
   const [form, setForm] = useState(empty);
   const [selectedFile, setSelectedFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (user.role !== "ADMIN") {
+      navigate("/user/dashboard");
+      return;
+    }
+
     if (isEdit) {
+      setLoading(true);
       fetchMediaById(id)
         .then(({ data }) => {
           setForm({
@@ -33,9 +58,18 @@ export default function MediaForm() {
             setPreviewUrl(data.url);
           }
         })
-        .catch(() => toast.error("Impossible de charger le média"));
+        .catch((error) => {
+          console.error('Error loading media:', error);
+          if (error.response?.status === 401) {
+            navigate("/login");
+          } else {
+            toast.error("Impossible de charger le média");
+            navigate("/media");
+          }
+        })
+        .finally(() => setLoading(false));
     }
-  }, [id, isEdit]);
+  }, [id, isEdit, user, navigate]);
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
@@ -49,6 +83,17 @@ export default function MediaForm() {
 
   const handleSubmit = async e => {
     e.preventDefault();
+    if (!user) {
+      navigate("/login");
+      return;
+    }
+
+    if (user.role !== "ADMIN") {
+      navigate("/user/dashboard");
+      return;
+    }
+
+    setLoading(true);
     try {
       let mediaData = { ...form };
 
@@ -59,8 +104,11 @@ export default function MediaForm() {
         if (form.description) {
           formData.append("description", form.description);
         }
+        if (form.entiteId) {
+          formData.append("entiteId", form.entiteId);
+        }
         
-        const uploadResponse = await uploadMedia(selectedFile);
+        const uploadResponse = await uploadMedia(formData);
         if (uploadResponse?.data) {
           mediaData = {
             ...mediaData,
@@ -81,20 +129,50 @@ export default function MediaForm() {
       navigate("/media");
     } catch (error) {
       console.error('Error:', error);
-      toast.error("Erreur lors de l'enregistrement du média");
+      if (error.response?.status === 401) {
+        navigate("/login");
+      } else {
+        toast.error("Erreur lors de l'enregistrement du média");
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
+  if (loading) {
+    return (
+      <div className="container py-4">
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status">
+            <span className="visually-hidden">Chargement...</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container py-4">
-      <h1 className="h3 mb-4">
-        {isEdit ? "Modifier le média" : "Nouveau média"}
-      </h1>
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h1 className="h3 mb-0">
+          {isEdit ? "Modifier le média" : "Nouveau média"}
+        </h1>
+        <button
+          className="btn btn-outline-secondary"
+          onClick={() => navigate("/media")}
+        >
+          <FontAwesomeIcon icon={faArrowLeft} className="me-2" />
+          Retour
+        </button>
+      </div>
       <div className="card shadow-sm">
         <div className="card-body">
           <form onSubmit={handleSubmit}>
             <div className="mb-3">
-              <label className="form-label">Fichier</label>
+              <label className="form-label">
+                <FontAwesomeIcon icon={faUpload} className="me-2" />
+                Fichier
+              </label>
               <input
                 type="file"
                 className="form-control"
@@ -113,7 +191,10 @@ export default function MediaForm() {
               )}
             </div>
             <div className="mb-3">
-              <label className="form-label">Nom du fichier</label>
+              <label className="form-label">
+                <FontAwesomeIcon icon={faImage} className="me-2" />
+                Nom du fichier
+              </label>
               <input
                 type="text"
                 className="form-control"
@@ -123,7 +204,10 @@ export default function MediaForm() {
               />
             </div>
             <div className="mb-3">
-              <label className="form-label">URL</label>
+              <label className="form-label">
+                <FontAwesomeIcon icon={faLink} className="me-2" />
+                URL
+              </label>
               <input
                 type="text"
                 className="form-control"
@@ -132,7 +216,10 @@ export default function MediaForm() {
               />
             </div>
             <div className="mb-3">
-              <label className="form-label">Description</label>
+              <label className="form-label">
+                <FontAwesomeIcon icon={faAlignLeft} className="me-2" />
+                Description
+              </label>
               <textarea
                 className="form-control"
                 value={form.description}
@@ -142,14 +229,17 @@ export default function MediaForm() {
               />
             </div>
             <div className="d-flex gap-2">
-              <button type="submit" className="btn btn-primary">
+              <button type="submit" className="btn btn-primary" disabled={loading}>
+                <FontAwesomeIcon icon={faSave} className="me-2" />
                 {isEdit ? "Mettre à jour" : "Créer"}
               </button>
               <button
                 type="button"
                 className="btn btn-secondary"
                 onClick={() => navigate("/media")}
+                disabled={loading}
               >
+                <FontAwesomeIcon icon={faTimes} className="me-2" />
                 Annuler
               </button>
             </div>

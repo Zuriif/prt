@@ -1,77 +1,66 @@
 // src/pages/SousSecteursList.jsx
 import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import {
-  fetchSousSecteurs,
-  deleteSousSecteur,
-} from "../services/sousSecteurService";
+import { fetchSousSecteurs, deleteSousSecteur } from "../services/sousSecteurService";
+import { fetchSecteurs } from "../services/secteurService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faPlus,
+  faSearch,
+  faEye,
+  faEdit,
+  faTrash,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons";
+import { Table, Container, Form, InputGroup, Alert, Modal, Button, Spinner } from 'react-bootstrap';
 
 export default function SousSecteursList() {
   const [sousSecteurs, setSousSecteurs] = useState([]);
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [showModal, setShowModal] = useState(false);
+  const [secteurs, setSecteurs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [selectedSousSecteur, setSelectedSousSecteur] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
-    loadSousSecteurs();
+    loadData();
   }, []);
 
-  const loadSousSecteurs = () => {
-    fetchSousSecteurs()
-      .then(({ data }) => setSousSecteurs(data))
-      .catch(() => toast.error("Impossible de charger les sous-secteurs"));
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const [sousSecteursRes, secteursRes] = await Promise.all([
+        fetchSousSecteurs(),
+        fetchSecteurs()
+      ]);
+      setSousSecteurs(sousSecteursRes.data);
+      setSecteurs(secteursRes.data);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError('Erreur lors de la récupération des données');
+      toast.error("Erreur lors du chargement des données");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async id => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce sous-secteur ?")) {
-      return;
-    }
     try {
       await deleteSousSecteur(id);
-      toast.success("Sous-secteur supprimé");
-      loadSousSecteurs();
-    } catch {
-      toast.error("Impossible de supprimer le sous-secteur");
+      toast.success("Sous-secteur supprimé avec succès");
+      loadData();
+      setShowDeleteModal(false);
+    } catch (error) {
+      toast.error("Erreur lors de la suppression");
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ces sous-secteurs ?")) {
-      return;
-    }
-    try {
-      await Promise.all([...selectedIds].map(id => deleteSousSecteur(id)));
-      toast.success("Sous-secteurs supprimés");
-      setSelectedIds(new Set());
-      loadSousSecteurs();
-    } catch {
-      toast.error("Impossible de supprimer les sous-secteurs");
-    }
-  };
-
-  const toggleSelect = id => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === sousSecteurs.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(sousSecteurs.map(e => e.id)));
-    }
-  };
-
-  const handleView = (sousSecteur) => {
+  const handleView = sousSecteur => {
     setSelectedSousSecteur(sousSecteur);
     setShowModal(true);
   };
@@ -81,96 +70,141 @@ export default function SousSecteursList() {
     setSelectedSousSecteur(null);
   };
 
+  const filteredSousSecteurs = sousSecteurs.filter(sousSecteur => {
+    const searchTermLower = searchTerm.toLowerCase();
+    return (
+      sousSecteur.nom?.toLowerCase().includes(searchTermLower) ||
+      sousSecteur.secteur?.nom?.toLowerCase().includes(searchTermLower)
+    );
+  });
+
+  if (loading) {
+    return (
+      <Container className="mt-4 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </Spinner>
+        <p className="mt-2">Chargement des sous-secteurs...</p>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="mt-4">
+        <Alert variant="danger">
+          <Alert.Heading>Erreur</Alert.Heading>
+          <p>{error}</p>
+          <Button variant="outline-danger" onClick={loadData}>
+            Réessayer
+          </Button>
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
-    <div className="container py-4">
+    <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3">Sous-secteurs</h1>
-        <div>
-          <button
-            className="btn btn-danger me-2"
-            disabled={!selectedIds.size}
-            onClick={handleBulkDelete}
+        <h2>Gestion des Sous-Secteurs</h2>
+        <Link to="/sous-secteurs/new" className="btn btn-primary">
+          <FontAwesomeIcon icon={faPlus} className="me-2" />
+          Nouveau Sous-Secteur
+        </Link>
+      </div>
+
+      <InputGroup className="mb-4">
+        <Form.Control
+          placeholder="Rechercher un sous-secteur par nom ou secteur..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        {searchTerm && (
+          <Button 
+            variant="outline-secondary" 
+            onClick={() => setSearchTerm('')}
           >
-            Delete
-          </button>
-          <Link to="/sous-secteurs/new" className="btn btn-success">
-            + Add New Sous-secteur
-          </Link>
-        </div>
-      </div>
+            <FontAwesomeIcon icon={faTimes} />
+          </Button>
+        )}
+      </InputGroup>
 
-      <div className="card shadow-sm">
-        <div className="card-body">
-          <div className="table-responsive">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.size === sousSecteurs.length}
-                      onChange={toggleSelectAll}
-                    />
-                  </th>
-                  <th>ID</th>
-                  <th>Libellé</th>
-                  <th>Secteur</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {sousSecteurs.map(e => (
-                  <tr key={e.id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(e.id)}
-                        onChange={() => toggleSelect(e.id)}
-                      />
-                    </td>
-                    <td>{e.id}</td>
-                    <td>{e.nom}</td>
-                    <td>{e.secteur?.nom}</td>
-                    <td>
-                      <button
-                        className="btn btn-sm btn-info me-2"
-                        onClick={() => handleView(e)}
-                      >
-                        View
-                      </button>
-                      <Link
-                        to={`/sous-secteurs/${e.id}`}
-                        className="btn btn-sm btn-primary me-2"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDelete(e.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <ToastContainer position="top-center" />
+      {filteredSousSecteurs.length === 0 ? (
+        <Alert variant="info">
+          {searchTerm 
+            ? "Aucun sous-secteur ne correspond à votre recherche"
+            : "Aucun sous-secteur trouvé"}
+        </Alert>
+      ) : (
+        <Table striped bordered hover responsive>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Secteur</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredSousSecteurs.map(sousSecteur => (
+              <tr key={sousSecteur.id}>
+                <td>{sousSecteur.nom}</td>
+                <td>{sousSecteur.secteur?.nom || 'N/A'}</td>
+                <td>
+                  <Button
+                    variant="info"
+                    size="sm"
+                    className="me-2"
+                    onClick={() => handleView(sousSecteur)}
+                    title="Voir"
+                  >
+                    <FontAwesomeIcon icon={faEye} />
+                  </Button>
+                  <Link
+                    to={`/sous-secteurs/${sousSecteur.id}`}
+                    className="btn btn-warning btn-sm me-2"
+                    title="Modifier"
+                  >
+                    <FontAwesomeIcon icon={faEdit} />
+                  </Link>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedSousSecteur(sousSecteur);
+                      setShowDeleteModal(true);
+                    }}
+                    title="Supprimer"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
 
-      {/* Details Modal */}
-      <Modal show={showModal} onHide={handleCloseModal} centered>
+      {/* Modal pour voir les détails */}
+      <Modal
+        show={showModal}
+        onHide={handleCloseModal}
+        centered
+      >
         <Modal.Header closeButton>
-          <Modal.Title>Détails du Sous-secteur</Modal.Title>
+          <Modal.Title>Détails du Sous-Secteur</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedSousSecteur && (
-            <div>
-              <p><strong>ID:</strong> {selectedSousSecteur.id}</p>
-              <p><strong>Nom:</strong> {selectedSousSecteur.nom}</p>
-              <p><strong>Secteur:</strong> {selectedSousSecteur.secteur?.nom}</p>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <strong>ID:</strong> {selectedSousSecteur.id}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Nom:</strong> {selectedSousSecteur.nom}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Secteur:</strong> {selectedSousSecteur.secteur?.nom || 'N/A'}
+              </div>
             </div>
           )}
         </Modal.Body>
@@ -180,6 +214,33 @@ export default function SousSecteursList() {
           </Button>
         </Modal.Footer>
       </Modal>
-    </div>
+
+      {/* Modal de confirmation de suppression */}
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmer la suppression</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Êtes-vous sûr de vouloir supprimer ce sous-secteur ?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Annuler
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={() => handleDelete(selectedSousSecteur?.id)}
+          >
+            Supprimer
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <ToastContainer />
+    </Container>
   );
 }

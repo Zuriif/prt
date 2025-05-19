@@ -4,71 +4,57 @@ import { Link } from "react-router-dom";
 import { fetchProduits, deleteProduit } from "../services/produitService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
-import Modal from 'react-bootstrap/Modal';
-import Button from 'react-bootstrap/Button';
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faPlus,
+  faSearch,
+  faEye,
+  faEdit,
+  faTrash,
+  faTimes,
+} from "@fortawesome/free-solid-svg-icons";
+import { Table, Container, Form, InputGroup, Alert, Modal, Button, Spinner } from 'react-bootstrap';
 
 export default function ProduitsList() {
   const [produits, setProduits] = useState([]);
-  const [selectedIds, setSelectedIds] = useState(new Set());
-  const [showModal, setShowModal] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const [selectedProduit, setSelectedProduit] = useState(null);
+  const [showModal, setShowModal] = useState(false);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   useEffect(() => {
     loadProduits();
   }, []);
 
-  const loadProduits = () => {
-    fetchProduits()
-      .then(({ data }) => setProduits(data))
-      .catch(() => toast.error("Impossible de charger les produits"));
+  const loadProduits = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const { data } = await fetchProduits();
+      setProduits(data);
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      setError('Erreur lors de la récupération des produits');
+      toast.error("Erreur lors du chargement des produits");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleDelete = async id => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ce produit ?")) {
-      return;
-    }
     try {
       await deleteProduit(id);
-      toast.success("Produit supprimé");
+      toast.success("Produit supprimé avec succès");
       loadProduits();
-    } catch {
-      toast.error("Impossible de supprimer le produit");
+      setShowDeleteModal(false);
+    } catch (error) {
+      toast.error("Erreur lors de la suppression");
     }
   };
 
-  const handleBulkDelete = async () => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer ces produits ?")) {
-      return;
-    }
-    try {
-      await Promise.all([...selectedIds].map(id => deleteProduit(id)));
-      toast.success("Produits supprimés");
-      setSelectedIds(new Set());
-      loadProduits();
-    } catch {
-      toast.error("Impossible de supprimer les produits");
-    }
-  };
-
-  const toggleSelect = id => {
-    const newSelected = new Set(selectedIds);
-    if (newSelected.has(id)) {
-      newSelected.delete(id);
-    } else {
-      newSelected.add(id);
-    }
-    setSelectedIds(newSelected);
-  };
-
-  const toggleSelectAll = () => {
-    if (selectedIds.size === produits.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(produits.map(p => p.id)));
-    }
-  };
-
-  const handleView = (produit) => {
+  const handleView = produit => {
     setSelectedProduit(produit);
     setShowModal(true);
   };
@@ -78,105 +64,152 @@ export default function ProduitsList() {
     setSelectedProduit(null);
   };
 
+  const filteredProduits = produits.filter(produit => {
+    const searchTermLower = searchTerm.toLowerCase();
+    return (
+      produit.nom?.toLowerCase().includes(searchTermLower) ||
+      produit.categorie?.toLowerCase().includes(searchTermLower) ||
+      produit.description?.toLowerCase().includes(searchTermLower)
+    );
+  });
+
+  if (loading) {
+    return (
+      <Container className="mt-4 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </Spinner>
+        <p className="mt-2">Chargement des produits...</p>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="mt-4">
+        <Alert variant="danger">
+          <Alert.Heading>Erreur</Alert.Heading>
+          <p>{error}</p>
+          <Button variant="outline-danger" onClick={loadProduits}>
+            Réessayer
+          </Button>
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
-    <div className="container py-4">
+    <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
-        <h1 className="h3">Produits</h1>
-        <div>
-          <button
-            className="btn btn-danger me-2"
-            disabled={!selectedIds.size}
-            onClick={handleBulkDelete}
+        <h2>Gestion des Produits</h2>
+        <Link to="/produits/new" className="btn btn-primary">
+          <FontAwesomeIcon icon={faPlus} className="me-2" />
+          Nouveau Produit
+        </Link>
+      </div>
+      
+      <InputGroup className="mb-4">
+        <Form.Control
+          placeholder="Rechercher un produit par nom, catégorie ou description..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+        {searchTerm && (
+          <Button 
+            variant="outline-secondary" 
+            onClick={() => setSearchTerm('')}
           >
-            Delete
-          </button>
-          <Link to="/produits/new" className="btn btn-success">
-            + Add New Product
-          </Link>
-        </div>
-      </div>
+            <FontAwesomeIcon icon={faTimes} />
+          </Button>
+        )}
+      </InputGroup>
 
-      <div className="card shadow-sm">
-        <div className="card-body">
-          <div className="table-responsive">
-            <table className="table">
-              <thead>
-                <tr>
-                  <th>
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.size === produits.length}
-                      onChange={toggleSelectAll}
-                    />
-                  </th>
-                  <th>ID</th>
-                  <th>Nom</th>
-                  <th>Description</th>
-                  <th>Catégorie</th>
-                  <th>Prix</th>
-                  <th>Entité ID</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {produits.map(p => (
-                  <tr key={p.id}>
-                    <td>
-                      <input
-                        type="checkbox"
-                        checked={selectedIds.has(p.id)}
-                        onChange={() => toggleSelect(p.id)}
-                      />
-                    </td>
-                    <td>{p.id}</td>
-                    <td>{p.nom}</td>
-                    <td>{p.description}</td>
-                    <td>{p.categorie}</td>
-                    <td>{p.prix}</td>
-                    <td>{p.entiteId}</td>
-                    <td>
-                      <button
-                        className="btn btn-sm btn-info me-2"
-                        onClick={() => handleView(p)}
-                      >
-                        View
-                      </button>
-                      <Link
-                        to={`/produits/${p.id}`}
-                        className="btn btn-sm btn-primary me-2"
-                      >
-                        Edit
-                      </Link>
-                      <button
-                        className="btn btn-sm btn-danger"
-                        onClick={() => handleDelete(p.id)}
-                      >
-                        Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-      <ToastContainer position="top-center" />
+      {filteredProduits.length === 0 ? (
+        <Alert variant="info">
+          {searchTerm 
+            ? "Aucun produit ne correspond à votre recherche"
+            : "Aucun produit trouvé"}
+        </Alert>
+      ) : (
+        <Table striped bordered hover responsive>
+          <thead>
+            <tr>
+              <th>Nom</th>
+              <th>Catégorie</th>
+              <th>Prix</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            {filteredProduits.map(produit => (
+              <tr key={produit.id}>
+                <td>{produit.nom}</td>
+                <td>
+                  <span className="badge bg-primary">
+                    {produit.categorie}
+                  </span>
+                </td>
+                <td>{produit.prix} €</td>
+                <td>
+                  <Button
+                    variant="info"
+                    size="sm"
+                    className="me-2"
+                    onClick={() => handleView(produit)}
+                    title="Voir"
+                  >
+                    <FontAwesomeIcon icon={faEye} />
+                  </Button>
+                  <Link
+                    to={`/produits/${produit.id}`}
+                    className="btn btn-warning btn-sm me-2"
+                    title="Modifier"
+                  >
+                    <FontAwesomeIcon icon={faEdit} />
+                  </Link>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    onClick={() => {
+                      setSelectedProduit(produit);
+                      setShowDeleteModal(true);
+                    }}
+                    title="Supprimer"
+                  >
+                    <FontAwesomeIcon icon={faTrash} />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
 
-      {/* Details Modal */}
-      <Modal show={showModal} onHide={handleCloseModal} centered>
+      {/* Modal pour voir les détails */}
+      <Modal
+        show={showModal}
+        onHide={handleCloseModal}
+        centered
+      >
         <Modal.Header closeButton>
           <Modal.Title>Détails du Produit</Modal.Title>
         </Modal.Header>
         <Modal.Body>
           {selectedProduit && (
-            <div>
-              <p><strong>ID:</strong> {selectedProduit.id}</p>
-              <p><strong>Nom:</strong> {selectedProduit.nom}</p>
-              <p><strong>Description:</strong> {selectedProduit.description}</p>
-              <p><strong>Catégorie:</strong> {selectedProduit.categorie}</p>
-              <p><strong>Prix:</strong> {selectedProduit.prix}</p>
-              <p><strong>Entité ID:</strong> {selectedProduit.entiteId}</p>
+            <div className="row">
+              <div className="col-md-6 mb-3">
+                <strong>Nom:</strong> {selectedProduit.nom}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Catégorie:</strong> {selectedProduit.categorie}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Prix:</strong> {selectedProduit.prix} €
+              </div>
+              <div className="col-12 mb-3">
+                <strong>Description:</strong>
+                <p>{selectedProduit.description}</p>
+              </div>
             </div>
           )}
         </Modal.Body>
@@ -186,6 +219,33 @@ export default function ProduitsList() {
           </Button>
         </Modal.Footer>
       </Modal>
-    </div>
+
+      {/* Modal de confirmation de suppression */}
+      <Modal
+        show={showDeleteModal}
+        onHide={() => setShowDeleteModal(false)}
+        centered
+      >
+        <Modal.Header closeButton>
+          <Modal.Title>Confirmer la suppression</Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          Êtes-vous sûr de vouloir supprimer ce produit ?
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+            Annuler
+          </Button>
+          <Button 
+            variant="danger" 
+            onClick={() => handleDelete(selectedProduit?.id)}
+          >
+            Supprimer
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      <ToastContainer />
+    </Container>
   );
 }

@@ -1,5 +1,4 @@
-// src/pages/FonctionnaireForm.jsx
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   fetchFonctionnaire,
@@ -8,13 +7,23 @@ import {
 } from "../services/fonctionnaireService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faSave,
+  faTimes,
+  faArrowLeft,
+} from "@fortawesome/free-solid-svg-icons";
+import { Container, Form, Button, Alert, Spinner } from 'react-bootstrap';
 
 export default function FonctionnaireForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
 
-  const emptyForm = {
+  const empty = {
     nom: "",
     prenom: "",
     email: "",
@@ -23,109 +32,188 @@ export default function FonctionnaireForm() {
     entiteId: "",
   };
 
-  const [form, setForm] = useState(emptyForm);
+  const [form, setForm] = useState(empty);
 
   useEffect(() => {
-    if (isEdit) {
-      fetchFonctionnaire(id)
-        .then(({ data }) => setForm(data))
-        .catch(() => toast.error("Impossible de charger le fonctionnaire"));
-    }
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        if (isEdit) {
+          const { data } = await fetchFonctionnaire(id);
+          setForm({
+            ...data,
+            entiteId: data.entiteId?.toString() || "",
+          });
+        } else {
+          setForm(empty);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        setError('Erreur lors du chargement des données');
+        toast.error("Impossible de charger les données");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, [id]);
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
     try {
+      setSaving(true);
+      const payload = {
+        ...form,
+        entiteId: parseInt(form.entiteId || 0, 10),
+      };
+
       if (isEdit) {
-        await updateFonctionnaire(id, form);
+        await updateFonctionnaire(id, payload);
         toast.success("Fonctionnaire mis à jour");
       } else {
-        await createFonctionnaire(form);
+        await createFonctionnaire(payload);
         toast.success("Fonctionnaire créé");
       }
       navigate("/fonctionnaires");
-    } catch {
-      toast.error("Erreur lors de l'enregistrement");
+    } catch (error) {
+      console.error('Error saving fonctionnaire:', error);
+      toast.error("Erreur d'enregistrement");
+    } finally {
+      setSaving(false);
     }
   };
 
+  if (loading) {
+    return (
+      <Container className="mt-4 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </Spinner>
+        <p className="mt-2">Chargement des données...</p>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="mt-4">
+        <Alert variant="danger">
+          <Alert.Heading>Erreur</Alert.Heading>
+          <p>{error}</p>
+          <Button variant="outline-danger" onClick={() => window.location.reload()}>
+            Réessayer
+          </Button>
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
-    <div className="container py-4">
-      <h1 className="h3 mb-4">
-        {isEdit ? "Modifier un fonctionnaire" : "Créer un fonctionnaire"}
-      </h1>
-      <form onSubmit={handleSubmit}>
-        <div className="row g-3">
-          <div className="col-sm-6">
-            <label className="form-label">Nom</label>
-            <input
-              type="text"
-              className="form-control"
-              value={form.nom}
-              onChange={(e) => setForm({ ...form, nom: e.target.value })}
-              required
-            />
+    <Container className="mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2>{isEdit ? "Modifier" : "Créer"} un fonctionnaire</h2>
+        <Button
+          variant="secondary"
+          onClick={() => navigate("/fonctionnaires")}
+        >
+          <FontAwesomeIcon icon={faArrowLeft} className="me-2" />
+          Retour
+        </Button>
+      </div>
+
+      <Form onSubmit={handleSubmit}>
+        <div className="row">
+          <div className="col-md-6 mb-3">
+            <Form.Group>
+              <Form.Label>Nom</Form.Label>
+              <Form.Control
+                type="text"
+                value={form.nom}
+                onChange={e => setForm({ ...form, nom: e.target.value })}
+                required
+              />
+            </Form.Group>
           </div>
-          <div className="col-sm-6">
-            <label className="form-label">Prénom</label>
-            <input
-              type="text"
-              className="form-control"
-              value={form.prenom}
-              onChange={(e) => setForm({ ...form, prenom: e.target.value })}
-            />
+          <div className="col-md-6 mb-3">
+            <Form.Group>
+              <Form.Label>Prénom</Form.Label>
+              <Form.Control
+                type="text"
+                value={form.prenom}
+                onChange={e => setForm({ ...form, prenom: e.target.value })}
+                required
+              />
+            </Form.Group>
           </div>
-          <div className="col-sm-6">
-            <label className="form-label">Email</label>
-            <input
-              type="email"
-              className="form-control"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
-            />
+          <div className="col-md-6 mb-3">
+            <Form.Group>
+              <Form.Label>Email</Form.Label>
+              <Form.Control
+                type="email"
+                value={form.email}
+                onChange={e => setForm({ ...form, email: e.target.value })}
+                required
+              />
+            </Form.Group>
           </div>
-          <div className="col-sm-6">
-            <label className="form-label">GSM</label>
-            <input
-              type="tel"
-              className="form-control"
-              value={form.gsm}
-              onChange={(e) => setForm({ ...form, gsm: e.target.value })}
-            />
+          <div className="col-md-6 mb-3">
+            <Form.Group>
+              <Form.Label>GSM</Form.Label>
+              <Form.Control
+                type="text"
+                value={form.gsm}
+                onChange={e => setForm({ ...form, gsm: e.target.value })}
+              />
+            </Form.Group>
           </div>
-          <div className="col-sm-6">
-            <label className="form-label">Profil</label>
-            <input
-              type="text"
-              className="form-control"
-              value={form.profil}
-              onChange={(e) => setForm({ ...form, profil: e.target.value })}
-            />
+          <div className="col-md-6 mb-3">
+            <Form.Group>
+              <Form.Label>Profil</Form.Label>
+              <Form.Control
+                type="text"
+                value={form.profil}
+                onChange={e => setForm({ ...form, profil: e.target.value })}
+                required
+              />
+            </Form.Group>
           </div>
-          <div className="col-sm-6">
-            <label className="form-label">Entité (ID)</label>
-            <input
-              type="number"
-              className="form-control"
-              value={form.entiteId}
-              onChange={(e) => setForm({ ...form, entiteId: e.target.value })}
-            />
+          <div className="col-md-6 mb-3">
+            <Form.Group>
+              <Form.Label>ID de l'Entité</Form.Label>
+              <Form.Control
+                type="number"
+                value={form.entiteId}
+                onChange={e => setForm({ ...form, entiteId: e.target.value })}
+                required
+              />
+            </Form.Group>
           </div>
         </div>
-        <div className="mt-4">
-          <button type="submit" className="btn btn-primary me-2">
-            {isEdit ? "Mettre à jour" : "Créer"}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => navigate("/fonctionnaires")}
+        <div className="mt-3">
+          <Button 
+            type="submit" 
+            variant="primary" 
+            disabled={saving}
           >
+            <FontAwesomeIcon icon={faSave} className="me-2" />
+            {saving ? 'Enregistrement...' : (isEdit ? "Mettre à jour" : "Créer")}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            className="ms-2"
+            onClick={() => navigate("/fonctionnaires")}
+            disabled={saving}
+          >
+            <FontAwesomeIcon icon={faTimes} className="me-2" />
             Annuler
-          </button>
+          </Button>
         </div>
-      </form>
-      <ToastContainer position="top-center" />
-    </div>
-);
-}
+      </Form>
+      <ToastContainer />
+    </Container>
+  );
+} 

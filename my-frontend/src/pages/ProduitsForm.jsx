@@ -1,4 +1,3 @@
-// src/pages/ProduitsForm.jsx
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -6,47 +5,70 @@ import {
   createProduit,
   updateProduit,
 } from "../services/produitService";
-import { fetchEntites } from "../services/entiteService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
+import {
+  faSave,
+  faTimes,
+  faArrowLeft,
+} from "@fortawesome/free-solid-svg-icons";
+import { Container, Form, Button, Alert, Spinner } from 'react-bootstrap';
 
-export default function ProduitsForm() {
+export default function ProduitForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const isEdit = Boolean(id);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [saving, setSaving] = useState(false);
 
   const empty = {
     nom: "",
     description: "",
     categorie: "",
-    prix: 0,
+    prix: "",
     entiteId: "",
   };
 
   const [form, setForm] = useState(empty);
-  const [entites, setEntites] = useState([]);
 
   useEffect(() => {
-    fetchEntites().then(r => setEntites(r.data));
-    if (isEdit) {
-      fetchProduit(id)
-        .then(({ data }) => {
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        if (isEdit) {
+          const { data } = await fetchProduit(id);
           setForm({
             ...data,
-            entiteId: data.entiteId || "",
+            prix: data.prix?.toString() || "",
+            entiteId: data.entiteId?.toString() || "",
           });
-        })
-        .catch(() => toast.error("Impossible de charger le produit"));
-    }
+        } else {
+          setForm(empty);
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+        setError('Erreur lors du chargement des données');
+        toast.error("Impossible de charger les données");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadData();
   }, [id]);
 
   const handleSubmit = async e => {
     e.preventDefault();
     try {
+      setSaving(true);
       const payload = {
         ...form,
-        prix: Number(form.prix),
-        entiteId: Number(form.entiteId)
+        prix: parseFloat(form.prix || 0),
+        entiteId: parseInt(form.entiteId || 0, 10),
       };
 
       if (isEdit) {
@@ -58,94 +80,132 @@ export default function ProduitsForm() {
       }
       navigate("/produits");
     } catch (error) {
-      console.error('Error saving produit:', error);
-      toast.error("Erreur lors de l'enregistrement");
+      console.error('Error saving product:', error);
+      toast.error("Erreur d'enregistrement");
+    } finally {
+      setSaving(false);
     }
   };
 
+  if (loading) {
+    return (
+      <Container className="mt-4 text-center">
+        <Spinner animation="border" role="status">
+          <span className="visually-hidden">Chargement...</span>
+        </Spinner>
+        <p className="mt-2">Chargement des données...</p>
+      </Container>
+    );
+  }
+
+  if (error) {
+    return (
+      <Container className="mt-4">
+        <Alert variant="danger">
+          <Alert.Heading>Erreur</Alert.Heading>
+          <p>{error}</p>
+          <Button variant="outline-danger" onClick={() => window.location.reload()}>
+            Réessayer
+          </Button>
+        </Alert>
+      </Container>
+    );
+  }
+
   return (
-    <div className="container py-4">
-      <h1 className="h3 mb-4">
-        {isEdit ? "Modifier le produit" : "Nouveau produit"}
-      </h1>
-      <div className="card shadow-sm">
-        <div className="card-body">
-          <form onSubmit={handleSubmit}>
-            <div className="mb-3">
-              <label className="form-label">Nom</label>
-              <input
+    <Container className="mt-4">
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2>{isEdit ? "Modifier" : "Créer"} un produit</h2>
+        <Button
+          variant="secondary"
+          onClick={() => navigate("/produits")}
+        >
+          <FontAwesomeIcon icon={faArrowLeft} className="me-2" />
+          Retour
+        </Button>
+      </div>
+
+      <Form onSubmit={handleSubmit}>
+        <div className="row">
+          <div className="col-md-6 mb-3">
+            <Form.Group>
+              <Form.Label>Nom</Form.Label>
+              <Form.Control
                 type="text"
-                className="form-control"
                 value={form.nom}
                 onChange={e => setForm({ ...form, nom: e.target.value })}
                 required
               />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label">Description</label>
-              <textarea
-                className="form-control"
-                value={form.description}
-                onChange={e => setForm({ ...form, description: e.target.value })}
-                rows="3"
-              />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label">Catégorie</label>
-              <input
+            </Form.Group>
+          </div>
+          <div className="col-md-6 mb-3">
+            <Form.Group>
+              <Form.Label>Catégorie</Form.Label>
+              <Form.Control
                 type="text"
-                className="form-control"
                 value={form.categorie}
                 onChange={e => setForm({ ...form, categorie: e.target.value })}
+                required
               />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label">Prix</label>
-              <input
+            </Form.Group>
+          </div>
+          <div className="col-md-6 mb-3">
+            <Form.Group>
+              <Form.Label>Prix</Form.Label>
+              <Form.Control
                 type="number"
                 step="0.01"
-                className="form-control"
                 value={form.prix}
                 onChange={e => setForm({ ...form, prix: e.target.value })}
+                required
               />
-            </div>
-
-            <div className="mb-3">
-              <label className="form-label">Entité</label>
-              <select
-                className="form-select"
+            </Form.Group>
+          </div>
+          <div className="col-md-6 mb-3">
+            <Form.Group>
+              <Form.Label>ID de l'Entité</Form.Label>
+              <Form.Control
+                type="number"
                 value={form.entiteId}
                 onChange={e => setForm({ ...form, entiteId: e.target.value })}
                 required
-              >
-                <option value="">Sélectionner une entité</option>
-                {entites.map(e => (
-                  <option key={e.id} value={e.id}>
-                    {e.libelle}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="d-flex gap-2">
-              <button type="submit" className="btn btn-primary">
-                {isEdit ? "Mettre à jour" : "Créer"}
-              </button>
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={() => navigate("/produits")}
-              >
-                Annuler
-              </button>
-            </div>
-          </form>
+              />
+            </Form.Group>
+          </div>
+          <div className="col-12 mb-3">
+            <Form.Group>
+              <Form.Label>Description</Form.Label>
+              <Form.Control
+                as="textarea"
+                rows={3}
+                value={form.description}
+                onChange={e => setForm({ ...form, description: e.target.value })}
+              />
+            </Form.Group>
+          </div>
         </div>
-      </div>
-      <ToastContainer position="top-center" />
-    </div>
+        <div className="mt-3">
+          <Button 
+            type="submit" 
+            variant="primary" 
+            disabled={saving}
+          >
+            <FontAwesomeIcon icon={faSave} className="me-2" />
+            {saving ? 'Enregistrement...' : (isEdit ? "Mettre à jour" : "Créer")}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            className="ms-2"
+            onClick={() => navigate("/produits")}
+            disabled={saving}
+          >
+            <FontAwesomeIcon icon={faTimes} className="me-2" />
+            Annuler
+          </Button>
+        </div>
+      </Form>
+      <ToastContainer />
+    </Container>
   );
-}
+} 
