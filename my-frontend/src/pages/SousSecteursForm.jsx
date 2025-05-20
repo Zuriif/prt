@@ -56,11 +56,15 @@ export default function SousSecteurForm() {
     try {
       setLoading(true);
       setError(null);
+      const payload = {
+        nom: formData.nom,
+        secteur: formData.secteurId ? { id: formData.secteurId } : null
+      };
       if (id) {
-        await updateSousSecteur(id, formData);
+        await updateSousSecteur(id, payload);
         toast.success("Sous-secteur mis à jour avec succès");
       } else {
-        await createSousSecteur(formData);
+        await createSousSecteur(payload);
         toast.success("Sous-secteur créé avec succès");
       }
       navigate("/sous-secteurs");

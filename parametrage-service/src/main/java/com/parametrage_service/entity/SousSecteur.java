@@ -16,6 +16,6 @@ public class SousSecteur {
 
     private String nom;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     private Secteur secteur;
 }
