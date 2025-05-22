@@ -3,7 +3,7 @@ package com.entite_service.controller;
 import com.entite_service.entity.Entite;
 import com.entite_service.service.EntiteService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,41 +14,30 @@ public class EntiteController {
 
     @Autowired
     private EntiteService entiteService;
-    
-    @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping
-    public Entite create(@RequestBody Entite entite) {
-        return entiteService.saveEntite(entite);
-    }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping
-    public List<Entite> getAll() {
-        return entiteService.getAllEntites();
+    public List<Entite> getAllEntites() {
+        return entiteService.findAll();
     }
 
-    @PreAuthorize("hasRole('ADMIN') or hasRole('USER')")
     @GetMapping("/{id}")
-    public Entite getById(@PathVariable Long id) {
-        return entiteService.getEntiteById(id);
+    public Entite getEntiteById(@PathVariable Long id) {
+        return entiteService.findById(id);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
+    @PostMapping
+    public Entite createEntite(@RequestBody Entite entite) {
+        return entiteService.save(entite);
+    }
+
     @PutMapping("/{id}")
-    public Entite update(@PathVariable Long id, @RequestBody Entite entite) {
-        entite.setId(id);
-        return entiteService.saveEntite(entite);
+    public Entite updateEntite(@PathVariable Long id, @RequestBody Entite entite) {
+        return entiteService.update(id, entite);
     }
 
-    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{id}")
-    public void delete(@PathVariable Long id) {
-        entiteService.deleteEntite(id);
+    public ResponseEntity<?> deleteEntite(@PathVariable Long id) {
+        entiteService.deleteById(id);
+        return ResponseEntity.ok().build();
     }
-    
-    @GetMapping("/ping")
-    public String ping() {
-        return "pong from <service>";
-    }
-
 }

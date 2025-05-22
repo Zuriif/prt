@@ -4,40 +4,69 @@ import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
-
-import java.util.Date;
+import java.time.LocalDateTime;
 
 @Entity
+@Table(name = "entity")
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 public class Entite {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    
     private String libelle;
-    private String adresse;
-    private String codePostal;
+    private String numMB;
+    private String description;
+    
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+    
+    @Column(name = "type_entreprise_id")
+    private Long typeEntrepriseId;
+    
+    private String type;
+    private String SH;
+    private Integer risk;
+    private Integer tome;
+    private String textSeo;
     private String region;
+    private String standard;
+    private String logo;
+    private String pays;
     private String telephone;
-    private String fax;
-    private String email;
-    private String source;
-    private Integer effectif;
-    private String formeJuridique;
-    private String capitalSocial;
+    private String codeFiscal;
+    private String ice;
+    private String patente;
+    private String rc;
+    private String cnss;
+    private String slug;
+    private String metaTitle;
+    private String metaDescription;
+    private String titreAriane;
+    private String langueSite;
 
-    @Temporal(TemporalType.DATE)
-    private Date dateCreation;
+    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL)
+    private EntiteBusiness entiteBusiness;
 
-    private String activites;
-    private String produits;
-    private String presentation;
-    private String marqueRepresentee;
+    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL)
+    private EntiteContact entiteContact;
 
-    @ManyToOne
-    private TypeEntreprise typeEntreprise;
+    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL)
+    private EntiteProducts entiteProducts;
 
+    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL)
+    private EntiteMedia entiteMedia;
+
+    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL)
+    private EntiteLocation entiteLocation;
+
+    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL)
+    private EntiteAdditional entiteAdditional;
+
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+    }
 }

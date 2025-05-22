@@ -149,7 +149,7 @@ export default function ProduitsList() {
                     {produit.categorie}
                   </span>
                 </td>
-                <td>{produit.prix} €</td>
+                <td>{produit.prix} MAD</td>
                 <td>
                   <Button
                     variant="info"
@@ -204,7 +204,7 @@ export default function ProduitsList() {
                 <strong>Catégorie:</strong> {selectedProduit.categorie}
               </div>
               <div className="col-md-6 mb-3">
-                <strong>Prix:</strong> {selectedProduit.prix} €
+                <strong>Prix:</strong> {selectedProduit.prix} MAD 
               </div>
               <div className="col-12 mb-3">
                 <strong>Description:</strong>

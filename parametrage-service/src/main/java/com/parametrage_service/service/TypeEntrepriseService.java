@@ -2,10 +2,12 @@ package com.parametrage_service.service;
 
 import com.parametrage_service.entity.TypeEntreprise;
 import java.util.List;
+import java.util.Optional;
 
 public interface TypeEntrepriseService {
-    TypeEntreprise saveTypeEntreprise(TypeEntreprise typeEntreprise);
     List<TypeEntreprise> getAllTypeEntreprises();
-    TypeEntreprise getTypeEntrepriseById(Long id);
+    Optional<TypeEntreprise> getTypeEntrepriseById(Long id);
+    TypeEntreprise createTypeEntreprise(TypeEntreprise typeEntreprise);
+    TypeEntreprise updateTypeEntreprise(Long id, TypeEntreprise typeEntreprise);
     void deleteTypeEntreprise(Long id);
 }

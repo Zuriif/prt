@@ -1,6 +1,6 @@
 // src/pages/TypeEntreprisesList.jsx
 import React, { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   fetchTypeEntreprises,
   deleteTypeEntreprise,
@@ -15,8 +15,12 @@ import {
   faEdit,
   faTrash,
   faTimes,
+  faCheck,
+  faXmark,
 } from "@fortawesome/free-solid-svg-icons";
 import { Table, Container, Form, InputGroup, Alert, Modal, Button, Spinner } from 'react-bootstrap';
+import { EditOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Space, Tag } from 'antd';
 
 export default function TypeEntreprisesList() {
   const [types, setTypes] = useState([]);
@@ -26,6 +30,7 @@ export default function TypeEntreprisesList() {
   const [selectedType, setSelectedType] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     loadTypes();
@@ -69,8 +74,149 @@ export default function TypeEntreprisesList() {
 
   const filteredTypes = types.filter(type => {
     const searchTermLower = searchTerm.toLowerCase();
-    return type.libelle?.toLowerCase().includes(searchTermLower);
+    return type.nom?.toLowerCase().includes(searchTermLower) ||
+           type.description?.toLowerCase().includes(searchTermLower);
   });
+
+  const columns = [
+    {
+      name: 'Nom',
+      selector: row => row.nom,
+      sortable: true,
+    },
+    {
+      name: 'Description',
+      selector: row => row.description,
+      sortable: true,
+    },
+    {
+      name: 'Entite',
+      selector: row => row.hasEntite,
+      sortable: true,
+      cell: row => (
+        <div className="text-center">
+          <FontAwesomeIcon 
+            icon={row.hasEntite ? faCheck : faXmark} 
+            className={row.hasEntite ? "text-success" : "text-danger"}
+          />
+        </div>
+      ),
+    },
+    {
+      name: 'Business',
+      selector: row => row.hasBusiness,
+      sortable: true,
+      cell: row => (
+        <div className="text-center">
+          <FontAwesomeIcon 
+            icon={row.hasBusiness ? faCheck : faXmark} 
+            className={row.hasBusiness ? "text-success" : "text-danger"}
+          />
+        </div>
+      ),
+    },
+    {
+      name: 'Contact',
+      selector: row => row.hasContact,
+      sortable: true,
+      cell: row => (
+        <div className="text-center">
+          <FontAwesomeIcon 
+            icon={row.hasContact ? faCheck : faXmark} 
+            className={row.hasContact ? "text-success" : "text-danger"}
+          />
+        </div>
+      ),
+    },
+    {
+      name: 'Products',
+      selector: row => row.hasProducts,
+      sortable: true,
+      cell: row => (
+        <div className="text-center">
+          <FontAwesomeIcon 
+            icon={row.hasProducts ? faCheck : faXmark} 
+            className={row.hasProducts ? "text-success" : "text-danger"}
+          />
+        </div>
+      ),
+    },
+    {
+      name: 'Media',
+      selector: row => row.hasMedia,
+      sortable: true,
+      cell: row => (
+        <div className="text-center">
+          <FontAwesomeIcon 
+            icon={row.hasMedia ? faCheck : faXmark} 
+            className={row.hasMedia ? "text-success" : "text-danger"}
+          />
+        </div>
+      ),
+    },
+    {
+      name: 'Location',
+      selector: row => row.hasLocation,
+      sortable: true,
+      cell: row => (
+        <div className="text-center">
+          <FontAwesomeIcon 
+            icon={row.hasLocation ? faCheck : faXmark} 
+            className={row.hasLocation ? "text-success" : "text-danger"}
+          />
+        </div>
+      ),
+    },
+    {
+      name: 'Additional',
+      selector: row => row.hasAdditional,
+      sortable: true,
+      cell: row => (
+        <div className="text-center">
+          <FontAwesomeIcon 
+            icon={row.hasAdditional ? faCheck : faXmark} 
+            className={row.hasAdditional ? "text-success" : "text-danger"}
+          />
+        </div>
+      ),
+    },
+    {
+      name: 'Actions',
+      cell: row => (
+        <div className="d-flex gap-2">
+          <Button
+            variant="info"
+            size="sm"
+            className="me-2"
+            onClick={() => handleView(row)}
+            title="Voir"
+          >
+            <FontAwesomeIcon icon={faEye} />
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            className="me-2"
+            onClick={() => navigate(`/type-entreprises/${row.id}`)}
+            title="Modifier"
+          >
+            <FontAwesomeIcon icon={faEdit} />
+          </Button>
+          <Button
+            variant="danger"
+            size="sm"
+            onClick={() => {
+              setSelectedType(row);
+              setShowDeleteModal(true);
+            }}
+            title="Supprimer"
+          >
+            <FontAwesomeIcon icon={faTrash} />
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   if (loading) {
     return (
@@ -101,15 +247,14 @@ export default function TypeEntreprisesList() {
     <Container className="mt-4">
       <div className="d-flex justify-content-between align-items-center mb-4">
         <h2>Gestion des Types d'Entreprise</h2>
-        <Link to="/type-entreprises/new" className="btn btn-primary">
-          <FontAwesomeIcon icon={faPlus} className="me-2" />
-          Nouveau Type
-        </Link>
+        <Button type="primary" onClick={() => navigate('/type-entreprises/new')}>
+          Create New Type
+        </Button>
       </div>
 
       <InputGroup className="mb-4">
         <Form.Control
-          placeholder="Rechercher un type par libellé..."
+          placeholder="Rechercher un type par nom ou description..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
         />
@@ -133,14 +278,65 @@ export default function TypeEntreprisesList() {
         <Table striped bordered hover responsive>
           <thead>
             <tr>
-              <th>Libellé</th>
+              <th>Nom</th>
+              <th>Description</th>
+              <th>Entite</th>
+              <th>Business</th>
+              <th>Contact</th>
+              <th>Produits</th>
+              <th>Media</th>
+              <th>Location</th>
+              <th>Additional</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {filteredTypes.map(type => (
               <tr key={type.id}>
-                <td>{type.libelle}</td>
+                <td>{type.nom}</td>
+                <td>{type.description}</td>
+                <td className="text-center">
+                  <FontAwesomeIcon 
+                    icon={type.hasEntite ? faCheck : faXmark} 
+                    className={type.hasEntite ? "text-success" : "text-danger"}
+                  />
+                </td>
+                <td className="text-center">
+                  <FontAwesomeIcon 
+                    icon={type.hasBusiness ? faCheck : faXmark} 
+                    className={type.hasBusiness ? "text-success" : "text-danger"}
+                  />
+                </td>
+                <td className="text-center">
+                  <FontAwesomeIcon 
+                    icon={type.hasContact ? faCheck : faXmark} 
+                    className={type.hasContact ? "text-success" : "text-danger"}
+                  />
+                </td>
+                <td className="text-center">
+                  <FontAwesomeIcon 
+                    icon={type.hasProducts ? faCheck : faXmark} 
+                    className={type.hasProducts ? "text-success" : "text-danger"}
+                  />
+                </td>
+                <td className="text-center">
+                  <FontAwesomeIcon 
+                    icon={type.hasMedia ? faCheck : faXmark} 
+                    className={type.hasMedia ? "text-success" : "text-danger"}
+                  />
+                </td>
+                <td className="text-center">
+                  <FontAwesomeIcon 
+                    icon={type.hasLocation ? faCheck : faXmark} 
+                    className={type.hasLocation ? "text-success" : "text-danger"}
+                  />
+                </td>
+                <td className="text-center">
+                  <FontAwesomeIcon 
+                    icon={type.hasAdditional ? faCheck : faXmark} 
+                    className={type.hasAdditional ? "text-success" : "text-danger"}
+                  />
+                </td>
                 <td>
                   <Button
                     variant="info"
@@ -151,13 +347,15 @@ export default function TypeEntreprisesList() {
                   >
                     <FontAwesomeIcon icon={faEye} />
                   </Button>
-                  <Link
-                    to={`/type-entreprises/${type.id}`}
-                    className="btn btn-warning btn-sm me-2"
+                  <Button
+                    variant="primary"
+                    size="sm"
+                    className="me-2"
+                    onClick={() => navigate(`/type-entreprises/${type.id}`)}
                     title="Modifier"
                   >
                     <FontAwesomeIcon icon={faEdit} />
-                  </Link>
+                  </Button>
                   <Button
                     variant="danger"
                     size="sm"
@@ -192,7 +390,38 @@ export default function TypeEntreprisesList() {
                 <strong>ID:</strong> {selectedType.id}
               </div>
               <div className="col-md-6 mb-3">
-                <strong>Libellé:</strong> {selectedType.libelle}
+                <strong>Nom:</strong> {selectedType.nom}
+              </div>
+              <div className="col-12 mb-3">
+                <strong>Description:</strong> {selectedType.description}
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Contact:</strong>{" "}
+                <FontAwesomeIcon 
+                  icon={selectedType.hasContact ? faCheck : faXmark} 
+                  className={selectedType.hasContact ? "text-success" : "text-danger"}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Business:</strong>{" "}
+                <FontAwesomeIcon 
+                  icon={selectedType.hasBusiness ? faCheck : faXmark} 
+                  className={selectedType.hasBusiness ? "text-success" : "text-danger"}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Produits:</strong>{" "}
+                <FontAwesomeIcon 
+                  icon={selectedType.hasProducts ? faCheck : faXmark} 
+                  className={selectedType.hasProducts ? "text-success" : "text-danger"}
+                />
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Media:</strong>{" "}
+                <FontAwesomeIcon 
+                  icon={selectedType.hasMedia ? faCheck : faXmark} 
+                  className={selectedType.hasMedia ? "text-success" : "text-danger"}
+                />
               </div>
             </div>
           )}

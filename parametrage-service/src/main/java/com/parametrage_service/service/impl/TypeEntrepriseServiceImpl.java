@@ -6,6 +6,7 @@ import com.parametrage_service.service.TypeEntrepriseService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 public class TypeEntrepriseServiceImpl implements TypeEntrepriseService {
@@ -14,18 +15,27 @@ public class TypeEntrepriseServiceImpl implements TypeEntrepriseService {
     private TypeEntrepriseRepository typeEntrepriseRepository;
 
     @Override
-    public TypeEntreprise saveTypeEntreprise(TypeEntreprise typeEntreprise) {
-        return typeEntrepriseRepository.save(typeEntreprise);
-    }
-
-    @Override
     public List<TypeEntreprise> getAllTypeEntreprises() {
         return typeEntrepriseRepository.findAll();
     }
 
     @Override
-    public TypeEntreprise getTypeEntrepriseById(Long id) {
-        return typeEntrepriseRepository.findById(id).orElse(null);
+    public Optional<TypeEntreprise> getTypeEntrepriseById(Long id) {
+        return typeEntrepriseRepository.findById(id);
+    }
+
+    @Override
+    public TypeEntreprise createTypeEntreprise(TypeEntreprise typeEntreprise) {
+        return typeEntrepriseRepository.save(typeEntreprise);
+    }
+
+    @Override
+    public TypeEntreprise updateTypeEntreprise(Long id, TypeEntreprise typeEntreprise) {
+        if (typeEntrepriseRepository.existsById(id)) {
+            typeEntreprise.setId(id);
+            return typeEntrepriseRepository.save(typeEntreprise);
+        }
+        throw new RuntimeException("TypeEntreprise not found with id: " + id);
     }
 
     @Override
