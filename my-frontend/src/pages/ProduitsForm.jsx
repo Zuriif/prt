@@ -12,6 +12,7 @@ import {
   faSave,
   faTimes,
   faArrowLeft,
+  faImage,
 } from "@fortawesome/free-solid-svg-icons";
 import { Container, Form, Button, Alert, Spinner } from 'react-bootstrap';
 
@@ -22,6 +23,8 @@ export default function ProduitForm() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [selectedImage, setSelectedImage] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
 
   const empty = {
     nom: "",
@@ -29,6 +32,7 @@ export default function ProduitForm() {
     categorie: "",
     prix: "",
     entiteId: "",
+    images: "",
   };
 
   const [form, setForm] = useState(empty);
@@ -46,6 +50,9 @@ export default function ProduitForm() {
             prix: data.prix?.toString() || "",
             entiteId: data.entiteId?.toString() || "",
           });
+          if (data.images) {
+            setImagePreview(data.images);
+          }
         } else {
           setForm(empty);
         }
@@ -61,6 +68,18 @@ export default function ProduitForm() {
     loadData();
   }, [id]);
 
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setSelectedImage(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = async e => {
     e.preventDefault();
     try {
@@ -70,6 +89,13 @@ export default function ProduitForm() {
         prix: parseFloat(form.prix || 0),
         entiteId: parseInt(form.entiteId || 0, 10),
       };
+
+      if (selectedImage) {
+        // Here you would typically upload the image to your server/storage
+        // and get back the URL to store in the database
+        // For now, we'll just use the base64 string
+        payload.images = imagePreview;
+      }
 
       if (isEdit) {
         await updateProduit(id, payload);
@@ -181,6 +207,26 @@ export default function ProduitForm() {
                 value={form.description}
                 onChange={e => setForm({ ...form, description: e.target.value })}
               />
+            </Form.Group>
+          </div>
+          <div className="col-12 mb-3">
+            <Form.Group>
+              <Form.Label>Image du Produit</Form.Label>
+              <Form.Control
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="mb-2"
+              />
+              {imagePreview && (
+                <div className="mt-2">
+                  <img 
+                    src={imagePreview} 
+                    alt="Aperçu" 
+                    style={{ maxWidth: '200px', maxHeight: '200px', objectFit: 'contain' }} 
+                  />
+                </div>
+              )}
             </Form.Group>
           </div>
         </div>

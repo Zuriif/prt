@@ -190,6 +190,7 @@ export default function ProduitsList() {
         show={showModal}
         onHide={handleCloseModal}
         centered
+        size="lg"
       >
         <Modal.Header closeButton>
           <Modal.Title>Détails du Produit</Modal.Title>
@@ -197,6 +198,20 @@ export default function ProduitsList() {
         <Modal.Body>
           {selectedProduit && (
             <div className="row">
+              {selectedProduit.images && (
+                <div className="col-12 mb-4 text-center">
+                  <img 
+                    src={selectedProduit.images} 
+                    alt={selectedProduit.nom}
+                    style={{ 
+                      maxWidth: '100%', 
+                      maxHeight: '300px', 
+                      objectFit: 'contain' 
+                    }}
+                    className="img-fluid rounded"
+                  />
+                </div>
+              )}
               <div className="col-md-6 mb-3">
                 <strong>Nom:</strong> {selectedProduit.nom}
               </div>
@@ -204,7 +219,7 @@ export default function ProduitsList() {
                 <strong>Catégorie:</strong> {selectedProduit.categorie}
               </div>
               <div className="col-md-6 mb-3">
-                <strong>Prix:</strong> {selectedProduit.prix} MAD 
+                <strong>Prix:</strong> {selectedProduit.prix} MAD
               </div>
               <div className="col-12 mb-3">
                 <strong>Description:</strong>

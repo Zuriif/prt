@@ -27,24 +27,7 @@ public class Produit {
     @Column(name = "entite_id", nullable = false)
     private Long entiteId;
 
-    // Additional fields from EntiteProducts
-    private String activites;
-    private String produits;
-    private String marqueRepresentee;
-    private String categories;
-    private String sousCategories;
-    private String marques;
-    @Column(name = "product_references")
-    private String productReferences;
-    private Integer stock;
-    private String caracteristiques;
+    @Column(columnDefinition = "LONGTEXT")
     private String images;
-    private String videos;
-    private String documents;
-    private String liens;
-    private String tags;
-    private String metaTitle;
-    private String metaDescription;
-    private String slug;
-    private String titreAriane;
+
 }

@@ -6,6 +6,8 @@ import {
   updateEntite,
 } from "../services/entiteService";
 import { fetchTypeEntreprises } from "../services/typeEntrepriseService";
+import { fetchSecteurs } from "../services/secteurService";
+import { fetchSousSecteurs } from "../services/sousSecteurService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -51,6 +53,8 @@ const EntiteForm = () => {
       titreAriane: '',
       langueSite: '',
       typeEntrepriseId: '',
+      secteurId: '',
+      sousSecteurId: '',
       entiteFields: {},
       businessFields: {},
       contactFields: {},
@@ -62,20 +66,31 @@ const EntiteForm = () => {
 
     const [formData, setFormData] = useState(emptyEntite);
     const [typeEntreprises, setTypeEntreprises] = useState([]);
+    const [secteurs, setSecteurs] = useState([]);
+    const [sousSecteurs, setSousSecteurs] = useState([]);
     const [selectedTypeEntreprise, setSelectedTypeEntreprise] = useState(null);
+    const [selectedSecteur, setSelectedSecteur] = useState(null);
 
     useEffect(() => {
         const loadData = async () => {
             setLoading(true);
             try {
-                const typesResponse = await fetchTypeEntreprises();
+                const [typesResponse, secteursResponse] = await Promise.all([
+                    fetchTypeEntreprises(),
+                    fetchSecteurs()
+                ]);
                 setTypeEntreprises(typesResponse.data);
+                setSecteurs(secteursResponse.data);
 
                 if (isEdit) {
                     const entiteResponse = await fetchEntite(id);
                     setFormData(entiteResponse.data);
                     const relatedType = typesResponse.data.find(type => type.id === entiteResponse.data.typeEntrepriseId);
                     setSelectedTypeEntreprise(relatedType);
+                    if (entiteResponse.data.secteurId) {
+                        const secteurSousSecteurs = await fetchSousSecteurs();
+                        setSousSecteurs(secteurSousSecteurs.data.filter(ss => ss.secteur?.id === entiteResponse.data.secteurId));
+                    }
                 } else {
                     setFormData(emptyEntite);
                 }
@@ -90,43 +105,68 @@ const EntiteForm = () => {
         loadData();
     }, [id, isEdit]);
 
-    const handleTypeChange = (event) => {
+    const handleTypeChange = async (event) => {
         const typeId = event.target.value;
-        console.log('Selected type ID from event:', typeId);
-        const selectedType = typeEntreprises.find(type => {
-            console.log('Comparing type:', type.id, typeId);
-            return type.id === parseInt(typeId, 10);
-        });
-        console.log('Found selected type:', selectedType);
+        const selectedType = typeEntreprises.find(type => type.id === parseInt(typeId, 10));
         setSelectedTypeEntreprise(selectedType || null);
-        setFormData(prev => {
-            const newData = { 
-                ...prev, 
-                typeEntrepriseId: selectedType ? selectedType.id : null 
-            };
-            console.log('Updated form data with type:', newData);
-            return newData;
-        });
+        setFormData(prev => ({
+            ...prev,
+            typeEntrepriseId: selectedType ? selectedType.id : null
+        }));
+    };
+
+    const handleSecteurChange = async (event) => {
+        const secteurId = event.target.value;
+        setSelectedSecteur(secteurId);
+        setFormData(prev => ({
+            ...prev,
+            secteurId: secteurId,
+            sousSecteurId: '' // Reset sous-secteur when secteur changes
+        }));
+
+        if (secteurId) {
+            try {
+                const sousSecteursResponse = await fetchSousSecteurs();
+                setSousSecteurs(sousSecteursResponse.data.filter(ss => ss.secteur?.id === parseInt(secteurId, 10)));
+            } catch (error) {
+                console.error('Error loading sous-secteurs:', error);
+                toast.error("Erreur lors du chargement des sous-secteurs");
+            }
+        } else {
+            setSousSecteurs([]);
+        }
+    };
+
+    const handleFileChange = (event, fieldName) => {
+        const file = event.target.files[0];
+        if (file) {
+            // Here you would typically upload the file to your server
+            // and get back a URL or file ID
+            // For now, we'll just store the file name
+            setFormData(prev => ({
+                ...prev,
+                [fieldName]: file.name
+            }));
+        }
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         setSaving(true);
-        console.log('Form data before submission:', formData);
 
         try {
             const payload = {
-              ...formData,
-              typeEntrepriseId: parseInt(formData.typeEntrepriseId || 0, 10),
+                ...formData,
+                typeEntrepriseId: parseInt(formData.typeEntrepriseId || 0, 10),
+                secteurId: parseInt(formData.secteurId || 0, 10),
+                sousSecteurId: parseInt(formData.sousSecteurId || 0, 10)
             };
-            console.log('Final payload being sent to backend:', payload);
 
             if (isEdit) {
                 await updateEntite(id, payload);
                 toast.success('Entite updated successfully');
             } else {
-                const response = await createEntite(payload);
-                console.log('Create entite response:', response);
+                await createEntite(payload);
                 toast.success('Entite created successfully');
             }
             navigate('/entites');
@@ -143,198 +183,300 @@ const EntiteForm = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
+    const renderField = (field) => {
+        // Special handling for specific fields
+        if (field.name === 'secteur') {
+            return (
+                <Form.Group className="mb-3" key={field.name}>
+                    <Form.Label>{field.label}</Form.Label>
+                    <Form.Select
+                        name="secteurId"
+                        value={formData.secteurId}
+                        onChange={handleSecteurChange}
+                    >
+                        <option value="">Sélectionner un secteur</option>
+                        {secteurs.map(secteur => (
+                            <option key={secteur.id} value={secteur.id}>
+                                {secteur.nom}
+                            </option>
+                        ))}
+                    </Form.Select>
+                </Form.Group>
+            );
+        }
+
+        if (field.name === 'sousSecteur') {
+            return (
+                <Form.Group className="mb-3" key={field.name}>
+                    <Form.Label>{field.label}</Form.Label>
+                    <Form.Select
+                        name="sousSecteurId"
+                        value={formData.sousSecteurId}
+                        onChange={handleInputChange}
+                        disabled={!formData.secteurId}
+                    >
+                        <option value="">Sélectionner un sous-secteur</option>
+                        {sousSecteurs.map(sousSecteur => (
+                            <option key={sousSecteur.id} value={sousSecteur.id}>
+                                {sousSecteur.nom}
+                            </option>
+                        ))}
+                    </Form.Select>
+                </Form.Group>
+            );
+        }
+
+        // Handle media fields
+        if (field.name.startsWith('image') || field.name.startsWith('video') || field.name === 'logo') {
+            return (
+                <Form.Group className="mb-3" key={field.name}>
+                    <Form.Label>{field.label}</Form.Label>
+                    <Form.Control
+                        type="file"
+                        accept={field.name.startsWith('image') || field.name === 'logo' ? 'image/*' : 'video/*'}
+                        onChange={(e) => handleFileChange(e, field.name)}
+                    />
+                    {formData[field.name] && (
+                        <small className="text-muted">File selected: {formData[field.name]}</small>
+                    )}
+                </Form.Group>
+            );
+        }
+
+        // Default text input for other fields
+        return (
+            <Form.Group className="mb-3" key={field.name}>
+                <Form.Label>{field.label}</Form.Label>
+                <Form.Control
+                    type="text"
+                    name={field.name}
+                    value={formData[field.name] || ''}
+                    onChange={handleInputChange}
+                />
+            </Form.Group>
+        );
+    };
+
     const renderFieldGroups = () => {
         if (!selectedTypeEntreprise) return null;
 
         const fieldGroups = {
             entite: {
-                title: "Entite",
+                title: "Informations Générales",
                 fields: [
-                  { name: "libelle", label: "Nom" },
-                  { name: "numMB", label: "Numéro MB" },
-                  { name: "description", label: "Description" },
-                  { name: "createdAt", label: "Created At" },
-                  { name: "type", label: "Type" },
-                  { name: "SH", label: "SH" },
-                  { name: "risk", label: "Risk" },
-                  { name: "tome", label: "Tome" },
-                  { name: "textSeo", label: "Text SEO" },
-                  { name: "region", label: "Region" },
-                  { name: "standard", label: "Standard" },
-                  { name: "logo", label: "Logo" },
-                  { name: "pays", label: "Pays" },
-                  { name: "telephone", label: "Telephone" },
-                  { name: "codeFiscal", label: "Code Fiscal" },
-                  { name: "ice", label: "ICE" },
-                  { name: "patente", label: "Patente" },
-                  { name: "rc", label: "RC" },
-                  { name: "cnss", label: "CNSS" },
-                  { name: "slug", label: "Slug" },
-                  { name: "metaTitle", label: "Meta Title" },
-                  { name: "metaDescription", label: "Meta Description" },
-                  { name: "titreAriane", label: "Titre Ariane" },
-                  { name: "langueSite", label: "Langue Site" },
-                ]
-              },
-            business: {
-                title: "Business Information",
-                fields: [
+                    { name: "libelle", label: "Nom" },
+                    { name: "numMB", label: "Numéro MB" },
+                    { name: "description", label: "Description" },
                     { name: "type", label: "Type" },
                     { name: "SH", label: "SH" },
                     { name: "risk", label: "Risk" },
                     { name: "tome", label: "Tome" },
+                    { name: "textSeo", label: "Text SEO" },
+                    { name: "region", label: "Région" },
+                    { name: "standard", label: "Standard" },
+                    { name: "pays", label: "Pays" },
+                    { name: "telephone", label: "Téléphone" },
+                    { name: "codeFiscal", label: "Code Fiscal" },
+                    { name: "ice", label: "ICE" },
+                    { name: "patente", label: "Patente" },
+                    { name: "rc", label: "RC" },
+                    { name: "cnss", label: "CNSS" }
+                ]
+            },
+            business: {
+                title: "Informations Business",
+                fields: [
                     { name: "typePrixMoyen", label: "Type Prix Moyen" },
                     { name: "effectif", label: "Effectif" },
                     { name: "capital", label: "Capital" },
                     { name: "formeJuridique", label: "Forme Juridique" },
-                    { name: "dateCreation", label: "Date Creation" },
-                    { name: "activite", label: "Activite" },
+                    { name: "dateCreation", label: "Date de Création" },
+                    { name: "activite", label: "Activité" },
                     { name: "secteur", label: "Secteur" },
                     { name: "sousSecteur", label: "Sous Secteur" },
-                    { name: "presentation", label: "Presentation" },
-                    { name: "reference", label: "Reference" },
+                    { name: "presentation", label: "Présentation" },
+                    { name: "reference", label: "Référence" },
                     { name: "position", label: "Position" },
-                    { name: "marqueRepresente", label: "Marque Represente" },
+                    { name: "marqueRepresente", label: "Marque Représentée" },
                     { name: "actionnaires", label: "Actionnaires" },
-                    { name: "chiffreAffaire", label: "Chiffre Affaire" },
+                    { name: "chiffreAffaire", label: "Chiffre d'Affaires" },
                     { name: "filiales", label: "Filiales" },
-                    { name: "fourchettePrix", label: "Fourchette Prix" },
-                    { name: "certifications", label: "Certifications" }
+                    { name: "fourchettePrix", label: "Fourchette de Prix" },
+                    { name: "certifications", label: "Certifications" },
+                    { name: "informationComplementaire", label: "Information Complémentaire" },
+                    { name: "moyenPaiement", label: "Moyen de Paiement" },
+                    { name: "quantite", label: "Quantité" },
+                    { name: "chiffres", label: "Chiffres" },
+                    { name: "actions", label: "Actions" },
+                    { name: "objectifs", label: "Objectifs" },
+                    { name: "missions", label: "Missions" },
+                    { name: "marches", label: "Marchés" },
+                    { name: "domaine", label: "Domaine" },
+                    { name: "prixMoyenEuro", label: "Prix Moyen (EUR)" },
+                    { name: "prixMoyenDollar", label: "Prix Moyen (USD)" },
+                    { name: "prixMoyenMad", label: "Prix Moyen (MAD)" },
+                    { name: "fourchetteType", label: "Type de Fourchette" },
+                    { name: "fourchetteEuro", label: "Fourchette (EUR)" },
+                    { name: "fourchetteDollar", label: "Fourchette (USD)" },
+                    { name: "regime", label: "Régime" },
+                    { name: "domainesPrioritaires", label: "Domaines Prioritaires" }
                 ]
             },
             contact: {
-                title: "Contact Information",
+                title: "Informations Contact",
                 fields: [
-                    { name: "telephone", label: "Telephone" },
                     { name: "email", label: "Email" },
                     { name: "gsm", label: "GSM" },
                     { name: "fax", label: "Fax" },
                     { name: "siteWeb", label: "Site Web" },
-                    { name: "boitePostal", label: "Boite Postal" },
+                    { name: "boitePostal", label: "Boîte Postale" },
                     { name: "adresse", label: "Adresse" },
                     { name: "ville", label: "Ville" },
                     { name: "codePostal", label: "Code Postal" },
-                    { name: "pays", label: "Pays" },
                     { name: "poste", label: "Poste" },
-                    { name: "languesParles", label: "Langues Parles" }
+                    { name: "languesParles", label: "Langues Parlées" }
                 ]
             },
             products: {
-                title: "Products Information",
+                title: "Informations Produits",
                 fields: [
                     { name: "produits", label: "Produits" },
+                    { name: "idProduitPrinciple", label: "ID Produit Principal" },
+                    { name: "idCertification", label: "ID Certification" },
                     { name: "certifs", label: "Certifications" },
                     { name: "partenaires", label: "Partenaires" },
                     { name: "marquesCommerciales", label: "Marques Commerciales" },
-                    { name: "nombreCooperatives", label: "Nombre Cooperatives" },
-                    { name: "capacite", label: "Capacite" },
+                    { name: "nombreCooperatives", label: "Nombre de Coopératives" },
+                    { name: "capacite", label: "Capacité" },
                     { name: "puissance", label: "Puissance" },
-                    { name: "destinction", label: "Destinction" },
+                    { name: "destinction", label: "Distinction" },
                     { name: "source", label: "Source" },
                     { name: "composition", label: "Composition" },
                     { name: "dimention", label: "Dimension" },
-                    { name: "specialite", label: "Specialite" },
-                    { name: "activites", label: "Activites" },
-                    { name: "rubriques", label: "Rubriques" }
+                    { name: "specialite", label: "Spécialité" },
+                    { name: "activites", label: "Activités" },
+                    { name: "rubriques", label: "Rubriques" },
+                    { name: "autre", label: "Autre" },
+                    { name: "autres", label: "Autres" }
                 ]
             },
             media: {
-                title: "Media Information",
+                title: "Médias",
                 fields: [
-                    { name: "video1", label: "Video 1" },
-                    { name: "video2", label: "Video 2" },
-                    { name: "video3", label: "Video 3" },
+                    { name: "video1", label: "Vidéo 1" },
+                    { name: "video2", label: "Vidéo 2" },
+                    { name: "video3", label: "Vidéo 3" },
                     { name: "image1", label: "Image 1" },
                     { name: "image2", label: "Image 2" },
                     { name: "image3", label: "Image 3" },
                     { name: "imageFondDesk", label: "Image Fond Desktop" },
                     { name: "imageFondMob", label: "Image Fond Mobile" },
                     { name: "imagesAdditionnelles", label: "Images Additionnelles" },
+                    { name: "produitListingDesk", label: "Listing Produit Desktop" },
+                    { name: "produitListingMob", label: "Listing Produit Mobile" },
+                    { name: "imageProduitDesk", label: "Image Produit Desktop" },
+                    { name: "imageProduitMob", label: "Image Produit Mobile" },
+                    { name: "partenaireImageDesk", label: "Image Partenaire Desktop" },
+                    { name: "partenaireImageMob", label: "Image Partenaire Mobile" },
+                    { name: "certifImageDesk", label: "Image Certification Desktop" },
+                    { name: "certifImageMob", label: "Image Certification Mobile" },
+                    { name: "producteurFondDesk", label: "Fond Producteur Desktop" },
+                    { name: "producteurFondMob", label: "Fond Producteur Mobile" },
                     { name: "logo", label: "Logo" },
-                    { name: "file", label: "File" }
+                    { name: "file", label: "Fichier" },
+                    { name: "new1", label: "Nouveau 1" },
+                    { name: "new2", label: "Nouveau 2" },
+                    { name: "new3", label: "Nouveau 3" }
                 ]
             },
             location: {
-                title: "Location Information",
+                title: "Informations Localisation",
                 fields: [
                     { name: "administration", label: "Administration" },
                     { name: "ports", label: "Ports" },
-                    { name: "cheminDeFer", label: "Chemin De Fer" },
+                    { name: "cheminDeFer", label: "Chemin de Fer" },
                     { name: "enseignement", label: "Enseignement" },
                     { name: "culture", label: "Culture" },
-                    { name: "etat", label: "Etat" },
+                    { name: "etat", label: "État" },
+                    { name: "nombreIlesAutonomes", label: "Nombre d'Îles Autonomes" },
                     { name: "gouvernorat", label: "Gouvernorat" },
-                    { name: "districtProvince", label: "District Province" },
-                    { name: "comte", label: "Comte" },
-                    { name: "departement", label: "Departement" },
+                    { name: "districtProvince", label: "District/Province" },
+                    { name: "comte", label: "Comté" },
+                    { name: "departement", label: "Département" },
                     { name: "commune", label: "Commune" },
-                    { name: "prefecture", label: "Prefecture" },
-                    { name: "sousPrefecture", label: "Sous Prefecture" },
+                    { name: "prefecture", label: "Préfecture" },
+                    { name: "sousPrefecture", label: "Sous-Préfecture" },
                     { name: "wilaya", label: "Wilaya" },
-                    { name: "region", label: "Region" }
+                    { name: "villeIndependante", label: "Ville Indépendante" },
+                    { name: "municipalite", label: "Municipalité" },
+                    { name: "chabiyat", label: "Chabiyat" },
+                    { name: "cercle", label: "Cercle" },
+                    { name: "village", label: "Village" },
+                    { name: "zoneDuGouvernementLocal", label: "Zone du Gouvernement Local" },
+                    { name: "circonscription", label: "Circonscription" },
+                    { name: "delegation", label: "Délégation" },
+                    { name: "chefferie", label: "Chefferie" },
+                    { name: "coCapital", label: "Co-Capital" }
                 ]
             },
             additional: {
-                title: "Additional Information",
+                title: "Informations Additionnelles",
                 fields: [
-                    { name: "textSeo", label: "Text SEO" },
-                    { name: "metaTitle", label: "Meta Title" },
-                    { name: "metaDescription", label: "Meta Description" },
-                    { name: "titreAriane", label: "Titre Ariane" },
-                    { name: "slug", label: "Slug" },
-                    { name: "langueSite", label: "Langue Site" },
-                    { name: "keywords", label: "Keywords" },
+                    { name: "keywords", label: "Mots-clés" },
+                    { name: "keywordsEn", label: "Mots-clés (EN)" },
                     { name: "caExport", label: "CA Export" },
-                    { name: "maisonMere", label: "Maison Mere" },
+                    { name: "maisonMere", label: "Maison Mère" },
                     { name: "groupe", label: "Groupe" },
                     { name: "population", label: "Population" },
-                    { name: "nombreCommune", label: "Nombre Commune" },
-                    { name: "nombreDouar", label: "Nombre Douar" },
-                    { name: "domainesCompetence", label: "Domaines Competence" },
-                    { name: "missionPositionnement", label: "Mission Positionnement" }
+                    { name: "nombreCommune", label: "Nombre de Communes" },
+                    { name: "nombreDouar", label: "Nombre de Douars" },
+                    { name: "domainesCompetence", label: "Domaines de Compétence" },
+                    { name: "missionPositionnement", label: "Mission et Positionnement" },
+                    { name: "recentesInterventions", label: "Interventions Récentes" },
+                    { name: "presentationExpertise", label: "Présentation Expertise" },
+                    { name: "offresAtouts", label: "Offres et Atouts" },
+                    { name: "titreMiseAvant", label: "Titre Mis en Avant" },
+                    { name: "sex", label: "Sexe" },
+                    { name: "language", label: "Langue" },
+                    { name: "nationality", label: "Nationalité" },
+                    { name: "physicalDescription", label: "Description Physique" },
+                    { name: "charges", label: "Charges" },
+                    { name: "jurisdiction", label: "Juridiction" },
+                    { name: "incorporationDate", label: "Date d'Incorporation" },
+                    { name: "inactivationDate", label: "Date d'Inactivation" },
+                    { name: "status", label: "Statut" },
+                    { name: "poids", label: "Poids" },
+                    { name: "document", label: "Document" },
+                    { name: "alias", label: "Alias" },
+                    { name: "secondName", label: "Second Nom" },
+                    { name: "usine", label: "Usine" },
+                    { name: "tomes", label: "Tomes" },
+                    { name: "date", label: "Date" }
                 ]
             }
         };
 
-        const accordionItems = Object.entries(fieldGroups).map(([groupKey, group]) => {
-             const selectedGroupFields = selectedTypeEntreprise[`${groupKey}Fields`] || {};
-
-            const fieldsToShow = group.fields.filter(field => selectedGroupFields[field.name]);
-
-            if (fieldsToShow.length === 0) return null;
-
-            return (
-                <Accordion.Item eventKey={groupKey} key={groupKey}>
-                    <Accordion.Header>{group.title}</Accordion.Header>
-                    <Accordion.Body>
-                        <Row>
-                            {fieldsToShow.map(field => (
-                                <Col md={6} className="mb-3" key={field.name}>
-                                    <Form.Group controlId={`${groupKey}-${field.name}`}>
-                                        <Form.Label>{field.label}</Form.Label>
-                                        <Form.Control
-                                            type="text"
-                                            name={field.name}
-                                            value={formData[field.name] || ''}
-                                            onChange={handleInputChange}
-                                        />
-                                    </Form.Group>
-                                </Col>
-                            ))}
-                        </Row>
-                    </Accordion.Body>
-                </Accordion.Item>
-            );
-        }).filter(item => item !== null);
-
-        return <Accordion>{accordionItems}</Accordion>;
+        return Object.entries(fieldGroups).map(([key, group]) => (
+            <Accordion.Item eventKey={key} key={key}>
+                <Accordion.Header>{group.title}</Accordion.Header>
+                <Accordion.Body>
+                    <Row>
+                        {group.fields.map(field => (
+                            <Col md={6} key={field.name}>
+                                {renderField(field)}
+                            </Col>
+                        ))}
+                    </Row>
+                </Accordion.Body>
+            </Accordion.Item>
+        ));
     };
 
     if (loading) {
         return (
             <Container className="mt-4 text-center">
                 <Spinner animation="border" role="status">
-                    <span className="visually-hidden">Chargement...</span>
+                    <span className="visually-hidden">Loading...</span>
                 </Spinner>
                 <p className="mt-2">Chargement des données...</p>
             </Container>
@@ -343,68 +485,62 @@ const EntiteForm = () => {
 
     return (
         <Container className="mt-4">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h2>{isEdit ? "Modifier" : "Créer"} une entité</h2>
-                <Button 
-                    variant="secondary"
-                    onClick={() => navigate("/entites")}
-                >
-                    <FontAwesomeIcon icon={faArrowLeft} className="me-2" />
-                    Retour
-                </Button>
-            </div>
-
-            <Form onSubmit={handleSubmit}>
-                <Card className="mb-4">
-                     <Card.Body>
-                        <Form.Group controlId="typeEntrepriseSelect">
-                            <Form.Label>Type d'entreprise</Form.Label>
-                            <Form.Control
-                                as="select"
+            <Card>
+                <Card.Header className="d-flex justify-content-between align-items-center">
+                    <h3>{isEdit ? 'Modifier' : 'Créer'} une Entité</h3>
+                    <Button variant="outline-secondary" onClick={() => navigate('/entites')}>
+                        <FontAwesomeIcon icon={faArrowLeft} className="me-2" />
+                        Retour
+                    </Button>
+                </Card.Header>
+                <Card.Body>
+                    <Form onSubmit={handleSubmit}>
+                        <Form.Group className="mb-3">
+                            <Form.Label>Type d'Entreprise</Form.Label>
+                            <Form.Select
+                                name="typeEntrepriseId"
                                 value={formData.typeEntrepriseId || ''}
                                 onChange={handleTypeChange}
                                 required
                             >
-                                <option value="">Select a type</option>
+                                <option value="">Sélectionner un type d'entreprise</option>
                                 {typeEntreprises.map(type => (
                                     <option key={type.id} value={type.id}>
                                         {type.nom}
                                     </option>
                                 ))}
-                            </Form.Control>
+                            </Form.Select>
                         </Form.Group>
-                     </Card.Body>
-                </Card>
 
-                {selectedTypeEntreprise && (
-                    <Card title="Fields" className="mb-4">
-                         <Card.Header>Fields</Card.Header>
-                         <Card.Body>
-                            {renderFieldGroups()}
-                         </Card.Body>
-                    </Card>
-                )}
+                        {selectedTypeEntreprise && (
+                            <Accordion defaultActiveKey="0">
+                                {renderFieldGroups()}
+                            </Accordion>
+                        )}
 
-                <div className="d-flex justify-content-end gap-2">
-                    <Button 
-                        variant="secondary"
-                        onClick={() => navigate('/entites')}
-                    >
-                        <FontAwesomeIcon icon={faTimes} className="me-2" />
-                        Annuler
-                    </Button>
-                    <Button 
-                        variant="primary"
-                        type="submit" 
-                        disabled={saving}
-                    >
-                        <FontAwesomeIcon icon={faSave} className="me-2" />
-                        {saving ? "Enregistrement..." : (isEdit ? "Mettre à jour" : "Créer")}
-                    </Button>
-                </div>
-            </Form>
-
-             <ToastContainer />
+                        <div className="mt-4 d-flex justify-content-end gap-2">
+                            <Button variant="secondary" onClick={() => navigate('/entites')}>
+                                <FontAwesomeIcon icon={faTimes} className="me-2" />
+                                Annuler
+                            </Button>
+                            <Button variant="primary" type="submit" disabled={saving}>
+                                {saving ? (
+                                    <>
+                                        <Spinner as="span" animation="border" size="sm" className="me-2" />
+                                        Enregistrement...
+                                    </>
+                                ) : (
+                                    <>
+                                        <FontAwesomeIcon icon={faSave} className="me-2" />
+                                        Enregistrer
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+                    </Form>
+                </Card.Body>
+            </Card>
+            <ToastContainer />
         </Container>
     );
 };
