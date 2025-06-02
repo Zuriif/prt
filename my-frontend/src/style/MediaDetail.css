@@ -1,0 +1,45 @@
+/* General styling for the MediaDetail page container */
+.media-detail-container {
+    background-color: #f8f9fa; /* Light grey background */
+    padding-top: 20px;
+    padding-bottom: 20px;
+}
+
+/* Styling for the card holding the media and details */
+.media-detail-card {
+    border: none;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+    margin-bottom: 20px; /* Space below the card */
+}
+
+.media-detail-card .card-body {
+    padding: 30px;
+}
+
+/* Styling for the media element (image/video) */
+.media-detail-media {
+    display: block; /* Ensure it takes up its own line */
+    max-width: 100%; /* Ensure it doesn't overflow */
+    height: auto; /* Maintain aspect ratio */
+    border-top-left-radius: 10px; /* Match card border radius */
+    border-top-right-radius: 10px;
+    object-fit: contain; /* Ensure the whole image is visible */
+}
+
+/* Styling for the media title (name) */
+.media-detail-title {
+    color: #343a40; /* Darker color for emphasis */
+    margin-top: 0; /* Remove default margin-top */
+}
+
+/* Styling for the media description */
+.media-detail-description {
+    color: #5a5a5a; /* Slightly lighter color for text */
+    margin-bottom: 0; /* Remove default margin-bottom if it's the last element */
+}
+
+/* Styling for the back button */
+.media-detail-back-button {
+     margin-bottom: 20px; /* Space below the button */
+} 

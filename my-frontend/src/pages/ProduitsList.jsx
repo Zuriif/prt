@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { fetchProduits, deleteProduit } from "../services/produitService";
+import { fetchEntite } from "../services/entiteService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -23,17 +24,41 @@ export default function ProduitsList() {
   const [showModal, setShowModal] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [entites, setEntites] = useState({});
 
   useEffect(() => {
     loadProduits();
   }, []);
+
+  const loadEntite = async (entiteId) => {
+    try {
+      const { data } = await fetchEntite(entiteId);
+      console.log('Loaded entity data:', data);
+      setEntites(prev => ({
+        ...prev,
+        [entiteId]: data
+      }));
+    } catch (error) {
+      console.error('Error fetching entity:', error);
+    }
+  };
 
   const loadProduits = async () => {
     try {
       setLoading(true);
       setError(null);
       const { data } = await fetchProduits();
+      console.log('Loaded products:', data);
       setProduits(data);
+      
+      // Load entity data for each product
+      const uniqueEntiteIds = [...new Set(data.map(p => p.entiteId))];
+      console.log('Unique entity IDs:', uniqueEntiteIds);
+      uniqueEntiteIds.forEach(entiteId => {
+        if (entiteId) {
+          loadEntite(entiteId);
+        }
+      });
     } catch (error) {
       console.error('Error fetching products:', error);
       setError('Erreur lors de la récupération des produits');
@@ -137,6 +162,7 @@ export default function ProduitsList() {
               <th>Nom</th>
               <th>Catégorie</th>
               <th>Prix</th>
+              <th>Entité</th>
               <th>Actions</th>
             </tr>
           </thead>
@@ -150,6 +176,15 @@ export default function ProduitsList() {
                   </span>
                 </td>
                 <td>{produit.prix} MAD</td>
+                <td>
+                  {entites[produit.entiteId] ? (
+                    <span className="badge bg-info">
+                      {entites[produit.entiteId].libelle}
+                    </span>
+                  ) : (
+                    <span className="text-muted">Chargement...</span>
+                  )}
+                </td>
                 <td>
                   <Button
                     variant="info"
@@ -220,6 +255,16 @@ export default function ProduitsList() {
               </div>
               <div className="col-md-6 mb-3">
                 <strong>Prix:</strong> {selectedProduit.prix} MAD
+              </div>
+              <div className="col-md-6 mb-3">
+                <strong>Entité:</strong>{" "}
+                {entites[selectedProduit.entiteId] ? (
+                  <span className="badge bg-info">
+                    {entites[selectedProduit.entiteId].libelle}
+                  </span>
+                ) : (
+                  <span className="text-muted">Chargement...</span>
+                )}
               </div>
               <div className="col-12 mb-3">
                 <strong>Description:</strong>

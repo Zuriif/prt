@@ -7,6 +7,7 @@ import client from '../../api/axiosClient';
 import { fetchSecteurs } from '../../services/secteurService';
 import '../../style/Dashboard.css';
 import logo from '../../assets/react.svg';
+import { Link } from 'react-router-dom';
 
 const UserHome = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -140,16 +141,18 @@ const UserHome = () => {
         <Row className="g-4">
           {media.map((item, idx) => (
             <Col md={6} key={item.id || idx}>
-              <Card className="media-card h-100 shadow-sm" style={{ border: 'none', borderRadius: 16 }}>
-                {imageUrls[item.id] && (
-                  <Card.Img variant="top" src={imageUrls[item.id]} style={{ height: 250, objectFit: 'cover', borderTopLeftRadius: 16, borderTopRightRadius: 16 }} />
-                )}
-                <Card.Body>
-                  <h5 className="fw-bold mb-2">{item.nomFichier}</h5>
-                  <div className="text-muted mb-2" style={{ fontSize: 13 }}>{item.dateUpload ? new Date(item.dateUpload).toLocaleDateString() : ''}</div>
-                  <p style={{ fontSize: 16 }}>{item.description || item.nomFichier}</p>
-                </Card.Body>
-              </Card>
+              <Link to={`/user/media/${item.id}`} style={{ textDecoration: 'none' }}>
+                <Card className="media-card h-100 shadow-sm" style={{ border: 'none', borderRadius: 16 }}>
+                  {imageUrls[item.id] && (
+                    <Card.Img variant="top" src={imageUrls[item.id]} style={{ height: 250, objectFit: 'cover', borderTopLeftRadius: 16, borderTopRightRadius: 16 }} />
+                  )}
+                  <Card.Body>
+                    <h5 className="fw-bold mb-2">{item.nomFichier}</h5>
+                    <div className="text-muted mb-2" style={{ fontSize: 13 }}>{item.dateUpload ? new Date(item.dateUpload).toLocaleDateString() : ''}</div>
+                    <p style={{ fontSize: 16 }}>{item.description || item.nomFichier}</p>
+                  </Card.Body>
+                </Card>
+              </Link>
             </Col>
           ))}
           {media.length === 0 && (

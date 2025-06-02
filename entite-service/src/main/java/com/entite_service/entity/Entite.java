@@ -47,22 +47,22 @@ public class Entite {
     private String titreAriane;
     private String langueSite;
 
-    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private EntiteBusiness entiteBusiness;
 
-    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private EntiteContact entiteContact;
 
-    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private EntiteProducts entiteProducts;
 
-    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private EntiteMedia entiteMedia;
 
-    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private EntiteLocation entiteLocation;
 
-    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL)
+    @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private EntiteAdditional entiteAdditional;
 
     @PrePersist

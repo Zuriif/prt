@@ -37,6 +37,7 @@ import UserEntitesList from "./pages/user/UserEntitiesList";
 import UserSecteursList from "./pages/user/UserSecteursList";
 import UserProfile from "./pages/user/UserProfile";
 import UserLayout from "./pages/user/UserLayout";
+import MediaDetail from "./pages/user/MediaDetail";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import NavBar from "./components/NavBar";
@@ -104,6 +105,7 @@ export default function App() {
           <Route path="/user/compte" element={<UserProfile />} />
           <Route path="/user/profile" element={<UserProfile />} />
           <Route path="/user/userdashboard" element={<UserDashboard />} />
+          <Route path="/user/media/:mediaId" element={<MediaDetail />} />
         </Route>
 
         {/* 4️⃣ Fallback */}

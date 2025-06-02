@@ -5,6 +5,7 @@ import {
   createProduit,
   updateProduit,
 } from "../services/produitService";
+import { fetchEntites } from "../services/entiteService";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
@@ -25,6 +26,7 @@ export default function ProduitForm() {
   const [saving, setSaving] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
+  const [entites, setEntites] = useState([]);
 
   const empty = {
     nom: "",
@@ -42,6 +44,10 @@ export default function ProduitForm() {
       try {
         setLoading(true);
         setError(null);
+        
+        // Load entities
+        const { data: entitesData } = await fetchEntites();
+        setEntites(entitesData);
         
         if (isEdit) {
           const { data } = await fetchProduit(id);
@@ -91,9 +97,6 @@ export default function ProduitForm() {
       };
 
       if (selectedImage) {
-        // Here you would typically upload the image to your server/storage
-        // and get back the URL to store in the database
-        // For now, we'll just use the base64 string
         payload.images = imagePreview;
       }
 
@@ -189,13 +192,19 @@ export default function ProduitForm() {
           </div>
           <div className="col-md-6 mb-3">
             <Form.Group>
-              <Form.Label>ID de l'Entité</Form.Label>
-              <Form.Control
-                type="number"
+              <Form.Label>Entité</Form.Label>
+              <Form.Select
                 value={form.entiteId}
                 onChange={e => setForm({ ...form, entiteId: e.target.value })}
                 required
-              />
+              >
+                <option value="">Sélectionner une entité</option>
+                {entites.map(entite => (
+                  <option key={entite.id} value={entite.id}>
+                    {entite.id} - {entite.libelle}
+                  </option>
+                ))}
+              </Form.Select>
             </Form.Group>
           </div>
           <div className="col-12 mb-3">

@@ -1,0 +1,66 @@
+/* Basic styling for the login page container */
+.login-container {
+    background: linear-gradient(to bottom, #ffffff, #f1f1f1); /* Subtle gradient */
+    min-height: 100vh;
+    /* Removed flexbox rules that were causing layout issues */
+}
+
+/* Styling for the card holding the login form */
+.login-card {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1);
+    overflow: hidden; /* Ensures border-radius clips content */
+}
+
+.login-card .card-body {
+    padding: 40px; /* More padding */
+}
+
+.login-card h1 {
+    color: #333;
+    margin-bottom: 30px;
+    font-weight: 700;
+}
+
+/* Styling for form labels and inputs */
+.login-form .form-label {
+    font-weight: 600;
+    color: #555;
+}
+
+.login-form .form-control {
+    border-radius: 8px;
+    padding: 12px 15px;
+    border: 1px solid #ccc;
+    transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    width: 100%; /* Ensure inputs take full width of their container */
+    box-sizing: border-box; /* Include padding and border in element's total width */
+}
+
+.login-form .form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.25rem rgba(0, 123, 255, 0.25);
+    outline: none;
+}
+
+/* Styling for the submit button */
+.login-form .btn-primary {
+    border-radius: 8px;
+    padding: 12px 20px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    background-color: #007bff;
+    border-color: #007bff;
+    transition: background-color 0.3s ease-in-out, border-color 0.3s ease-in-out, opacity 0.3s ease-in-out;
+}
+
+.login-form .btn-primary:hover {
+    background-color: #0056b3;
+    border-color: #004085;
+}
+
+.login-form .btn-primary:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+} 

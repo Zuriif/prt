@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { AuthContext } from "../contexts/AuthContext";
 import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
+import '../style/Login.css';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -62,14 +63,14 @@ export default function Login() {
   };
 
   return (
-    <div className="container">
+    <div className="container login-container">
       <div className="row justify-content-center align-items-center min-vh-100">
         <div className="col-md-6 col-lg-4">
-          <div className="card shadow">
+          <div className="card shadow login-card">
             <div className="card-body p-5">
               <h1 className="text-center mb-4">Connexion</h1>
               
-              <form onSubmit={handleSubmit}>
+              <form onSubmit={handleSubmit} className="login-form">
                 <div className="mb-3">
                   <label className="form-label">Email</label>
                   <input
