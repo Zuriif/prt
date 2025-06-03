@@ -18,19 +18,19 @@ public class CorsGlobalFilter implements WebFilter {
         var response = ctx.getResponse();
         HttpHeaders headers = response.getHeaders();
 
-        // 1) Ajout toujours des en-têtes CORS
-        headers.add("Access-Control-Allow-Origin", "http://localhost:5173");
-        headers.add("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
-        headers.add("Access-Control-Allow-Headers", "Authorization,Content-Type");
-        headers.add("Access-Control-Allow-Credentials", "true");
+        // 1) Set CORS headers (using set instead of add to prevent duplicates)
+        headers.set("Access-Control-Allow-Origin", "http://localhost:5173");
+        headers.set("Access-Control-Allow-Methods", "GET,POST,PUT,DELETE,OPTIONS");
+        headers.set("Access-Control-Allow-Headers", "Authorization,Content-Type");
+        headers.set("Access-Control-Allow-Credentials", "true");
 
-        // 2) Si c'est une preflight OPTIONS, on répond tout de suite 200
+        // 2) If it's a preflight OPTIONS request, return 200 immediately
         if (request.getMethod() == HttpMethod.OPTIONS) {
             response.setStatusCode(HttpStatus.OK);
             return Mono.empty();
         }
 
-        // 3) Sinon, on continue la chaîne
+        // 3) Otherwise, continue the chain
         return chain.filter(ctx);
     }
 }

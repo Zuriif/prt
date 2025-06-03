@@ -96,6 +96,37 @@ export function AuthProvider({ children }) {
     }
   };
 
+  const loginWithGoogle = async (googleToken) => {
+    try {
+      console.log('Google login request with token:', googleToken);
+      
+      const response = await client.post("/api/auth/google", {
+        token: googleToken
+      });
+      
+      console.log('Google login response:', response.data);
+      
+      const newToken = response.data.token;
+      if (!newToken) {
+        throw new Error('Token not received');
+      }
+
+      localStorage.setItem("token", newToken);
+      setToken(newToken);
+      const decoded = decodeJwt(newToken);
+      
+      if (!decoded) {
+        throw new Error('Failed to decode user information');
+      }
+      
+      setUser(decoded);
+      return decoded;
+    } catch (error) {
+      console.error('Google login error:', error.response?.data || error.message);
+      throw error;
+    }
+  };
+
   const updateUser = async (userData) => {
     try {
       if (!token) {
@@ -129,7 +160,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout, updateUser }}>
+    <AuthContext.Provider value={{ user, token, login, loginWithGoogle, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

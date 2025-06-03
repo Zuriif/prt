@@ -13,6 +13,15 @@ const authService = {
         return response.data;
     },
 
+    loginWithGoogle: async (googleToken) => {
+        const response = await axios.post(`${API_URL}/google`, { token: googleToken });
+        if (response.data.token) {
+            localStorage.setItem('token', response.data.token);
+            localStorage.setItem('user', JSON.stringify(response.data));
+        }
+        return response.data;
+    },
+
     logout: () => {
         localStorage.removeItem('token');
         localStorage.removeItem('user');

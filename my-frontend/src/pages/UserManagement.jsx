@@ -116,10 +116,10 @@ const UserManagement = () => {
   const handleEditClick = (user) => {
     setSelectedUser(user);
     setFormData({
-      nom: user.nom,
-      email: user.email,
+      nom: user.nom || '',
+      email: user.email || '',
       motDePasse: '',
-      role: user.role.nom
+      role: user.role?.nom || 'USER'
     });
     setIsEditing(true);
     setShowModal(true);
