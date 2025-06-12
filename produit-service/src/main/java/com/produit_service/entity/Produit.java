@@ -30,4 +30,9 @@ public class Produit {
     @Column(columnDefinition = "LONGTEXT")
     private String images;
 
+    @Column(name = "created_at", nullable = false, updatable = false)
+    @Temporal(TemporalType.TIMESTAMP)
+    @Builder.Default
+    private java.util.Date createdAt = new java.util.Date();
+
 }

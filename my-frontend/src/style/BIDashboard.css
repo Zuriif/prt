@@ -1,0 +1,181 @@
+.bi-dashboard {
+    padding: 24px;
+    background: #f0f2f5;
+    min-height: 100vh;
+}
+
+.dashboard-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+    padding: 16px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dashboard-header h2 {
+    margin: 0;
+    color: #1a1a1a;
+    font-size: 24px;
+    font-weight: 600;
+}
+
+.controls {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+}
+
+.chart-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 16px;
+}
+
+.chart-card .ant-card-head {
+    border-bottom: 1px solid #f0f0f0;
+    padding: 16px 24px;
+}
+
+.chart-card .ant-card-body {
+    padding: 24px;
+}
+
+.insights-card {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.insight-card {
+    height: 100%;
+    transition: all 0.3s ease;
+}
+
+.insight-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.insight-card h4 {
+    color: #1a1a1a;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: 600;
+}
+
+.insight-card p {
+    color: #666;
+    margin-bottom: 16px;
+    font-size: 14px;
+}
+
+.insight-metrics {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.metric {
+    font-size: 20px;
+    font-weight: 600;
+    color: #1890ff;
+}
+
+.trend {
+    font-size: 14px;
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.trend.positive {
+    background: #f6ffed;
+    color: #52c41a;
+}
+
+.trend.negative {
+    background: #fff2f0;
+    color: #ff4d4f;
+}
+
+.loading-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 400px;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loading-container p {
+    margin-top: 16px;
+    color: #666;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .dashboard-header {
+        flex-direction: column;
+        gap: 16px;
+    }
+
+    .controls {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+
+    .insight-card {
+        margin-bottom: 16px;
+    }
+}
+
+/* Chart specific styles */
+.recharts-wrapper {
+    margin: 0 auto;
+}
+
+.recharts-default-tooltip {
+    background-color: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid #eee !important;
+    border-radius: 4px !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Animation styles */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.chart-card {
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Custom scrollbar */
+.bi-dashboard::-webkit-scrollbar {
+    width: 8px;
+}
+
+.bi-dashboard::-webkit-scrollbar-track {
+    background: #f1f1f1;
+}
+
+.bi-dashboard::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 4px;
+}
+
+.bi-dashboard::-webkit-scrollbar-thumb:hover {
+    background: #555;
+} 

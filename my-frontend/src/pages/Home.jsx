@@ -6,6 +6,7 @@ import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import client from '../api/axiosClient';
 import '../style/Dashboard.css';
+import BIDashboard from '../components/BIDashboard';
 
 import {
   PieChart, Pie, Cell, Legend, Tooltip as ReTooltip,
@@ -21,6 +22,7 @@ const Home = () => {
   });
   const [recentUsers, setRecentUsers] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [showBIDashboard, setShowBIDashboard] = useState(false);
 
   useEffect(() => {
     fetchDashboardData();
@@ -100,14 +102,30 @@ const Home = () => {
     );
   }
 
+  if (showBIDashboard) {
+    return <BIDashboard />;
+  }
+
   return (
     <Container fluid className="dashboard-container py-4">
       <ToastContainer position="top-center" />
       
       {/* Welcome Section */}
       <div className="welcome-section">
-        <h2>Tableau de bord</h2>
-        <p>Bienvenue dans votre espace d'administration</p>
+        <div className="d-flex justify-content-between align-items-center">
+          <div>
+            <h2>Tableau de bord</h2>
+            <p>Bienvenue dans votre espace d'administration</p>
+          </div>
+          <Button 
+            variant="primary" 
+            onClick={() => setShowBIDashboard(true)}
+            className="d-flex align-items-center gap-2"
+          >
+            <FaChartLine />
+            Voir le tableau de bord BI
+          </Button>
+        </div>
       </div>
 
       {/* Statistics Cards */}
@@ -199,16 +217,16 @@ const Home = () => {
           <Row className="g-4">
             <Col md={12}>
               <QuickAccessCard
-                title="Gestion des utilisateurs"
-                description="Créer, modifier et gérer les utilisateurs du système"
-                icon={FaUserPlus}
+                title="Gestion des Utilisateurs"
+                description="Gérer les utilisateurs et leurs permissions"
+                icon={FaUsers}
                 color="primary"
                 link="/users"
               />
             </Col>
             <Col md={12}>
               <QuickAccessCard
-                title="Gestion des entités"
+                title="Gestion des Entités"
                 description="Gérer les entités et leurs informations"
                 icon={FaBuilding}
                 color="success"
@@ -217,8 +235,8 @@ const Home = () => {
             </Col>
             <Col md={12}>
               <QuickAccessCard
-                title="Gestion des produits"
-                description="Gérer le catalogue des produits"
+                title="Gestion des Produits"
+                description="Gérer les produits et leurs détails"
                 icon={FaBox}
                 color="warning"
                 link="/produits"
