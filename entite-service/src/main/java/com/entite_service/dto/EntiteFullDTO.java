@@ -32,6 +32,9 @@ public class EntiteFullDTO {
     private String metaDescription;
     private String titreAriane;
     private String langueSite;
+    private Long secteurId;
+    private Long sousSecteurId;
+
 
     private EntiteBusiness entiteBusiness;
     private EntiteContact entiteContact;

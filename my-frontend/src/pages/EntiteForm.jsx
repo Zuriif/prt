@@ -221,8 +221,9 @@ const EntiteForm = () => {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState({
-    libelle: '', description: '', typeEntrepriseId: '', secteurId: '', sousSecteurId: '',
-    entiteBusiness: {}, entiteContact: {}, entiteProducts: {}, entiteMedia: {}, entiteLocation: {}, entiteAdditional: {}
+    libelle: '', description: '', typeEntrepriseId: '',
+    entiteBusiness: { secteurId: '', sousSecteurId: '' }, // Initialize with IDs
+    entiteContact: {}, entiteProducts: {}, entiteMedia: {}, entiteLocation: {}, entiteAdditional: {}
   });
   const [typeEntreprises, setTypeEntreprises] = useState([]);
   const [secteurs, setSecteurs] = useState([]);
@@ -243,21 +244,55 @@ const EntiteForm = () => {
         setTypeEntreprises(typesResponse.data);
         setSecteurs(secteursResponse.data);
 
+        console.log('Loaded Secteurs:', secteursResponse.data);
+        console.log('Loaded SousSecteurs:', sousSecteursResponse.data);
+
         if (isEdit) {
           const entiteResponse = await fetchEntite(id);
-          setFormData({
-            ...formData,
-            ...entiteResponse.data,
-            entiteBusiness: entiteResponse.data.entiteBusiness || {},
-            entiteContact: entiteResponse.data.entiteContact || {},
-            entiteProducts: entiteResponse.data.entiteProducts || {},
-            entiteMedia: entiteResponse.data.entiteMedia || {},
-            entiteLocation: entiteResponse.data.entiteLocation || {},
-            entiteAdditional: entiteResponse.data.entiteAdditional || {}
-          });
-          const relatedType = typesResponse.data.find(type => type.id === entiteResponse.data.typeEntrepriseId);
+          const fetchedEntiteData = entiteResponse.data;
+          console.log('Fetched Entite Data:', fetchedEntiteData);
+
+          let initialFormData = {
+            ...fetchedEntiteData,
+            entiteBusiness: fetchedEntiteData.entiteBusiness || {},
+            entiteContact: fetchedEntiteData.entiteContact || {},
+            entiteProducts: fetchedEntiteData.entiteProducts || {},
+            entiteMedia: fetchedEntiteData.entiteMedia || {},
+            entiteLocation: fetchedEntiteData.entiteLocation || {},
+            entiteAdditional: fetchedEntiteData.entiteAdditional || {}
+          };
+
+          // Populate secteurId and sousSecteurId based on fetched names, ensuring they are strings
+          if (initialFormData.entiteBusiness.secteur) {
+            const foundSecteur = secteursResponse.data.find(s => s.nom === initialFormData.entiteBusiness.secteur);
+            if (foundSecteur) {
+              initialFormData.entiteBusiness.secteurId = foundSecteur.id.toString();
+            }
+            console.log('Mapping Secteur:', initialFormData.entiteBusiness.secteur, '-> Found ID (string):', foundSecteur?.id.toString());
+          }
+          if (initialFormData.entiteBusiness.sousSecteur) {
+            const foundSousSecteur = sousSecteursResponse.data.find(ss => ss.nom === initialFormData.entiteBusiness.sousSecteur);
+            if (foundSousSecteur) {
+              initialFormData.entiteBusiness.sousSecteurId = foundSousSecteur.id.toString();
+            }
+            console.log('Mapping SousSecteur:', initialFormData.entiteBusiness.sousSecteur, '-> Found ID (string):', foundSousSecteur?.id.toString());
+          }
+
+          setFormData(initialFormData);
+          console.log('Final formData after edit load:', initialFormData);
+          console.log('Type of secteurId after load:', typeof initialFormData.entiteBusiness?.secteurId);
+          console.log('Type of sousSecteurId after load:', typeof initialFormData.entiteBusiness?.sousSecteurId);
+
+          const relatedType = typesResponse.data.find(type => type.id === fetchedEntiteData.typeEntrepriseId);
           setSelectedTypeEntreprise(relatedType);
+
+        } else {
+          setFormData(prev => ({ 
+            ...prev,
+            entiteBusiness: { secteurId: '', sousSecteurId: '' } // Ensure default business fields are set on new forms as well
+          }));
         }
+
       } catch (err) {
         toast.error("Erreur chargement données");
       } finally {
@@ -269,15 +304,41 @@ const EntiteForm = () => {
 
   const handleInputChange = (e, groupKey) => {
     const { name, value } = e.target;
-    if (groupKey) {
-      const nestedKey = `entite${capitalize(groupKey)}`;
-      setFormData(prev => ({
-        ...prev,
-        [nestedKey]: { ...prev[nestedKey], [name]: value }
-      }));
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }));
-    }
+
+    setFormData(prev => {
+      let updatedFormData = { ...prev };
+
+      if (groupKey) {
+        const nestedKey = `entite${capitalize(groupKey)}`;
+        let updatedNestedObject = { ...prev[nestedKey] };
+
+        if (groupKey === 'business') {
+          if (name === 'secteur') {
+            const selectedSecteur = secteurs.find(s => s.id.toString() === value);
+            updatedNestedObject.secteur = selectedSecteur?.nom || '';
+            updatedNestedObject.secteurId = selectedSecteur?.id.toString() || '';
+            updatedNestedObject.sousSecteur = '';
+            updatedNestedObject.sousSecteurId = '';
+          } else if (name === 'sousSecteur') {
+            const selectedSousSecteur = sousSecteurs.find(ss => ss.id.toString() === value);
+            updatedNestedObject.sousSecteur = selectedSousSecteur?.nom || '';
+            updatedNestedObject.sousSecteurId = selectedSousSecteur?.id.toString() || '';
+          } else {
+            updatedNestedObject[name] = value;
+          }
+        } else {
+          updatedNestedObject[name] = value;
+        }
+
+        updatedFormData[nestedKey] = updatedNestedObject;
+      } else {
+        updatedFormData[name] = value;
+      }
+      console.log('Setting formData in handleInputChange:', updatedFormData);
+      console.log('Type of secteurId in handleInputChange:', typeof updatedFormData.entiteBusiness?.secteurId);
+      console.log('Type of sousSecteurId in handleInputChange:', typeof updatedFormData.entiteBusiness?.sousSecteurId);
+      return updatedFormData;
+    });
   };
 
   const handleTypeChange = (e) => {
@@ -294,8 +355,11 @@ const EntiteForm = () => {
       const payload = cleanPayload({
         ...formData,
         typeEntrepriseId: parseInt(formData.typeEntrepriseId || 0),
-        secteurId: parseInt(formData.secteurId || 0),
-        sousSecteurId: parseInt(formData.sousSecteurId || 0)
+        entiteBusiness: {
+          ...formData.entiteBusiness,
+          secteurId: parseInt(formData.entiteBusiness?.secteurId || 0),
+          sousSecteurId: parseInt(formData.entiteBusiness?.sousSecteurId || 0)
+        }
       });
       if (isEdit) await updateEntite(id, payload);
       else await createEntite(payload);
@@ -338,54 +402,46 @@ const EntiteForm = () => {
                       <Form.Group className="mb-3">
                         <Form.Label htmlFor={field.name}>{field.label}</Form.Label>
                         {groupKey === 'business' && field.name === 'secteur' ? (
+                          <>
+                            {console.log('Rendering Secteur dropdown:', {
+                              currentSecteurId: formData.entiteBusiness?.secteurId,
+                              availableSecteurs: secteurs.map(s => ({ id: s.id, nom: s.nom }))
+                            })}
                           <Form.Select
+                            key={`secteur-${formData.entiteBusiness?.secteurId}`}
                             id="secteur"
                             name="secteur"
                             value={formData.entiteBusiness?.secteurId || ''}
-                            onChange={(e) => {
-                              const selectedSecteur = secteurs.find(s => s.id === parseInt(e.target.value));
-                              setFormData(prev => ({
-                                ...prev,
-                                entiteBusiness: {
-                                  ...prev.entiteBusiness,
-                                  secteur: selectedSecteur?.nom || '',
-                                  secteurId: selectedSecteur?.id || '',
-                                  sousSecteur: '',
-                                  sousSecteurId: ''
-                                }
-                              }));
-                            }}
+                            onChange={(e) => handleInputChange(e, 'business')}
                           >
                             <option value="">Sélectionner un secteur</option>
                             {secteurs.map(s => (
-                              <option key={s.id} value={s.id}>{s.nom}</option>
+                              <option key={s.id} value={s.id.toString()}>{s.nom}</option>
                             ))}
                           </Form.Select>
+                          </>
                         ) : groupKey === 'business' && field.name === 'sousSecteur' ? (
+                          <>
+                            {console.log('Rendering SousSecteur dropdown:', {
+                              currentSousSecteurId: formData.entiteBusiness?.sousSecteurId,
+                              filteredSousSecteurs: sousSecteurs.filter(ss => ss.secteur?.id.toString() === formData.entiteBusiness?.secteurId).map(ss => ({ id: ss.id, nom: ss.nom }))
+                            })}
                           <Form.Select
+                            key={`sous-secteur-${formData.entiteBusiness?.sousSecteurId}`}
                             id="sousSecteur"
                             name="sousSecteur"
                             value={formData.entiteBusiness?.sousSecteurId || ''}
-                            onChange={(e) => {
-                              const selectedSousSecteur = sousSecteurs.find(ss => ss.id === parseInt(e.target.value));
-                              setFormData(prev => ({
-                                ...prev,
-                                entiteBusiness: {
-                                  ...prev.entiteBusiness,
-                                  sousSecteur: selectedSousSecteur?.nom || '',
-                                  sousSecteurId: selectedSousSecteur?.id || ''
-                                }
-                              }));
-                            }}
+                            onChange={(e) => handleInputChange(e, 'business')}
                             disabled={!formData.entiteBusiness?.secteurId}
                           >
                             <option value="">Sélectionner un sous-secteur</option>
                             {sousSecteurs
-                              .filter(ss => ss.secteur?.id === parseInt(formData.entiteBusiness?.secteurId))
+                              .filter(ss => ss.secteur?.id.toString() === formData.entiteBusiness?.secteurId) // Ensure comparison is string to string
                               .map(ss => (
-                                <option key={ss.id} value={ss.id}>{ss.nom}</option>
+                                <option key={ss.id} value={ss.id.toString()}>{ss.nom}</option>
                               ))}
                           </Form.Select>
+                          </>
                         ) : (
                           <Form.Control
                             id={field.name}
