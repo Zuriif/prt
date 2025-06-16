@@ -1,5 +1,3 @@
-
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Select from 'react-select';
@@ -95,9 +93,7 @@ const fieldGroups = {
         { name: "dateCreation", label: "Date de Création" },
         { name: "activite", label: "Activité" },
         { name: "secteur", label: "Secteur" },
-        { name: "secteurEn", label: "Secteur EN" },
         { name: "sousSecteur", label: "Sous Secteur" },
-        { name: "sousSecteurEn", label: "Sous Secteur EN" },
         { name: "presentation", label: "Présentation" },
         { name: "presentationEn", label: "Présentation EN" },
         { name: "reference", label: "Référence" },
@@ -341,47 +337,64 @@ const EntiteForm = () => {
                     <Col md={6} key={field.name}>
                       <Form.Group className="mb-3">
                         <Form.Label htmlFor={field.name}>{field.label}</Form.Label>
-                        {field.name === 'secteurId' ? (
-  <Form.Select
-  id="secteurId"
-  name="secteurId"
-  value={formData.secteurId || ''}
-  onChange={(e) => handleInputChange(e)}
-  size={6}  
->
-  <option value="">Sélectionner un secteur</option>
-  {secteurs.map(s => (
-    <option key={s.id} value={s.id}>{s.nom}</option>
-  ))}
-</Form.Select>
-
-) : field.name === 'sousSecteurId' ? (
-    <Form.Select
-    id="sousSecteurId"
-    name="sousSecteurId"
-    value={formData.sousSecteurId || ''}
-    onChange={(e) => handleInputChange(e)}
-    disabled={!formData.secteurId}
-    size={6}
-  >
-    <option value="">Sélectionner un sous-secteur</option>
-    {sousSecteurs
-      .filter(ss => ss.secteur?.id === parseInt(formData.secteurId))
-      .map(ss => (
-        <option key={ss.id} value={ss.id}>{ss.nom}</option>
-      ))}
-  </Form.Select>
-  
-) : (
-  <Form.Control
-    id={field.name}
-    name={field.name}
-    type="text"
-    value={groupKey === 'entite' ? formData[field.name] || '' : formData[`entite${capitalize(groupKey)}`]?.[field.name] || ''}
-    onChange={(e) => handleInputChange(e, groupKey === 'entite' ? null : groupKey)}
-  />
-)}
-
+                        {groupKey === 'business' && field.name === 'secteur' ? (
+                          <Form.Select
+                            id="secteur"
+                            name="secteur"
+                            value={formData.entiteBusiness?.secteurId || ''}
+                            onChange={(e) => {
+                              const selectedSecteur = secteurs.find(s => s.id === parseInt(e.target.value));
+                              setFormData(prev => ({
+                                ...prev,
+                                entiteBusiness: {
+                                  ...prev.entiteBusiness,
+                                  secteur: selectedSecteur?.nom || '',
+                                  secteurId: selectedSecteur?.id || '',
+                                  sousSecteur: '',
+                                  sousSecteurId: ''
+                                }
+                              }));
+                            }}
+                          >
+                            <option value="">Sélectionner un secteur</option>
+                            {secteurs.map(s => (
+                              <option key={s.id} value={s.id}>{s.nom}</option>
+                            ))}
+                          </Form.Select>
+                        ) : groupKey === 'business' && field.name === 'sousSecteur' ? (
+                          <Form.Select
+                            id="sousSecteur"
+                            name="sousSecteur"
+                            value={formData.entiteBusiness?.sousSecteurId || ''}
+                            onChange={(e) => {
+                              const selectedSousSecteur = sousSecteurs.find(ss => ss.id === parseInt(e.target.value));
+                              setFormData(prev => ({
+                                ...prev,
+                                entiteBusiness: {
+                                  ...prev.entiteBusiness,
+                                  sousSecteur: selectedSousSecteur?.nom || '',
+                                  sousSecteurId: selectedSousSecteur?.id || ''
+                                }
+                              }));
+                            }}
+                            disabled={!formData.entiteBusiness?.secteurId}
+                          >
+                            <option value="">Sélectionner un sous-secteur</option>
+                            {sousSecteurs
+                              .filter(ss => ss.secteur?.id === parseInt(formData.entiteBusiness?.secteurId))
+                              .map(ss => (
+                                <option key={ss.id} value={ss.id}>{ss.nom}</option>
+                              ))}
+                          </Form.Select>
+                        ) : (
+                          <Form.Control
+                            id={field.name}
+                            name={field.name}
+                            type="text"
+                            value={groupKey === 'entite' ? formData[field.name] || '' : formData[`entite${capitalize(groupKey)}`]?.[field.name] || ''}
+                            onChange={(e) => handleInputChange(e, groupKey === 'entite' ? null : groupKey)}
+                          />
+                        )}
                       </Form.Group>
                     </Col>
                   ))}
