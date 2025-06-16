@@ -6,6 +6,8 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonManagedReference;
+
 @Entity
 @Table(name = "entity")
 @Data
@@ -48,21 +50,27 @@ public class Entite {
     private String langueSite;
 
     @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonManagedReference
     private EntiteBusiness entiteBusiness;
 
     @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonManagedReference
     private EntiteContact entiteContact;
 
     @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonManagedReference
     private EntiteProducts entiteProducts;
 
     @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonManagedReference
     private EntiteMedia entiteMedia;
 
     @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonManagedReference
     private EntiteLocation entiteLocation;
 
     @OneToOne(mappedBy = "entite", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @JsonManagedReference
     private EntiteAdditional entiteAdditional;
 
     @PrePersist

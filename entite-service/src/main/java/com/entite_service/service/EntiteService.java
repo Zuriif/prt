@@ -1,12 +1,12 @@
 package com.entite_service.service;
 
-import com.entite_service.entity.Entite;
+import com.entite_service.dto.EntiteFullDTO;
 import java.util.List;
 
 public interface EntiteService {
-    List<Entite> findAll();
-    Entite findById(Long id);
-    Entite save(Entite entite);
-    Entite update(Long id, Entite entite);
+    List<EntiteFullDTO> findAll();
+    EntiteFullDTO findById(Long id);
+    EntiteFullDTO save(EntiteFullDTO entiteDTO);
+    EntiteFullDTO update(Long id, EntiteFullDTO entiteDTO);
     void deleteById(Long id);
 }

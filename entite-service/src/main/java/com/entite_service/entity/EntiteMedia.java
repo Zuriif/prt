@@ -1,5 +1,7 @@
 package com.entite_service.entity;
 
+import com.fasterxml.jackson.annotation.JsonBackReference;
+
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -17,6 +19,7 @@ public class EntiteMedia {
 
     @OneToOne
     @JoinColumn(name = "entite_id")
+    @JsonBackReference
     private Entite entite;
 
     private String video1;
