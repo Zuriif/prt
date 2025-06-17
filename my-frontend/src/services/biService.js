@@ -216,8 +216,33 @@ class BIService {
     }
 
     async getProductTimeSeries(interval = 'monthly') {
-        const response = await client.get('/api/bi/timeseries/products', { params: { interval } });
-        return response.data;
+        try {
+            const response = await client.get('/api/bi/timeseries/products', { params: { interval } });
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching product time series:', error);
+            throw error;
+        }
+    }
+
+    async getBusinessCorrelations() {
+        try {
+            const response = await client.get('/api/bi/correlations/business');
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching business correlations:', error);
+            throw error;
+        }
+    }
+
+    async getBusinessScorecard() {
+        try {
+            const response = await client.get('/api/bi/scorecard');
+            return response.data;
+        } catch (error) {
+            console.error('Error fetching business scorecard:', error);
+            throw error;
+        }
     }
 
     // Data processing methods

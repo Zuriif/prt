@@ -27,10 +27,14 @@ const BIDashboard = () => {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [productTimeSeries, setProductTimeSeries] = useState({});
+    const [correlations, setCorrelations] = useState({});
+    const [scorecard, setScorecard] = useState({});
 
     useEffect(() => {
         fetchBIData();
         fetchProductTimeSeries();
+        fetchCorrelations();
+        fetchScorecard();
     }, [timeframe, dateRange]);
 
     const fetchBIData = async () => {
@@ -76,6 +80,24 @@ const BIDashboard = () => {
             setProductTimeSeries(data.timeSeriesData || {});
         } catch (error) {
             console.error('Error fetching product time series:', error);
+        }
+    };
+
+    const fetchCorrelations = async () => {
+        try {
+            const data = await biService.getBusinessCorrelations();
+            setCorrelations(data);
+        } catch (error) {
+            console.error('Error fetching correlations:', error);
+        }
+    };
+
+    const fetchScorecard = async () => {
+        try {
+            const data = await biService.getBusinessScorecard();
+            setScorecard(data);
+        } catch (error) {
+            console.error('Error fetching scorecard:', error);
         }
     };
 
@@ -199,7 +221,7 @@ const BIDashboard = () => {
     const renderEntityDistribution = () => {
         if (!metrics?.entity?.entityDistribution) {
             return (
-                <Card title="Entity Distribution by Type" className="chart-card">
+                <Card title="Entity Distribution by Type" className="chart-card" style={{ minHeight: '550px' }}>
                     <div style={{ padding: 24, textAlign: 'center' }}>No entity distribution data available.</div>
                 </Card>
             );
@@ -219,14 +241,14 @@ const BIDashboard = () => {
 
         if (distributionData.length === 0) {
             return (
-                <Card title="Entity Distribution by Type" className="chart-card">
+                <Card title="Entity Distribution by Type" className="chart-card" style={{ minHeight: '550px' }}>
                     <div style={{ padding: 24, textAlign: 'center' }}>No valid entity distribution data available.</div>
                 </Card>
             );
         }
 
         return (
-            <Card title="Entity Distribution by Type" className="chart-card">
+            <Card title="Entity Distribution by Type" className="chart-card" style={{ minHeight: '550px' }}>
                 <div>
                     <ResponsiveContainer width="100%" height={300}>
                         <BarChart
@@ -280,6 +302,58 @@ const BIDashboard = () => {
                         <p>Total Entities: {metrics.entity?.totalEntities || 0}</p>
                         <p>Total Types: {metrics.entity?.totalTypes || 0}</p>
                     </div>
+
+                    {/* Summary Section for Entity Distribution */}
+                    <div style={{ 
+                        marginTop: '20px', 
+                        padding: '15px', 
+                        backgroundColor: '#f5f5f5', 
+                        borderRadius: '4px' 
+                    }}>
+                        <Row gutter={16}>
+                            <Col span={12}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <h4>Total Entities</h4>
+                                    <p style={{ fontSize: '24px', margin: 0 }}>
+                                        {metrics.entity?.totalEntities || 0}
+                                    </p>
+                                </div>
+                            </Col>
+                            <Col span={12}>
+                                <div style={{ textAlign: 'center' }}>
+                                    <h4>Total Types</h4>
+                                    <p style={{ fontSize: '24px', margin: 0 }}>
+                                        {metrics.entity?.totalTypes || 0}
+                                    </p>
+                                </div>
+                            </Col>
+                        </Row>
+                    </div>
+
+                    {/* Entity Distribution Table */}
+                    <div style={{ marginTop: '20px' }}>
+                        <h4>Entity Type Breakdown</h4>
+                        <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                            <thead>
+                                <tr style={{ backgroundColor: '#f0f0f0' }}>
+                                    <th style={{ padding: '8px', textAlign: 'left' }}>Type</th>
+                                    <th style={{ padding: '8px', textAlign: 'right' }}>Entities</th>
+                                    <th style={{ padding: '8px', textAlign: 'right' }}>Percentage</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {distributionData.map((type, index) => (
+                                    <tr key={index} style={{ borderBottom: '1px solid #eee' }}>
+                                        <td style={{ padding: '8px' }}>{type.name}</td>
+                                        <td style={{ padding: '8px', textAlign: 'right' }}>{type.value}</td>
+                                        <td style={{ padding: '8px', textAlign: 'right' }}>
+                                            {type.percentage?.toFixed(1)}%
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </Card>
         );
@@ -288,7 +362,7 @@ const BIDashboard = () => {
     const renderSectorAnalysis = () => {
         if (!metrics?.sector?.secteurs) {
             return (
-                <Card title="Sector Analysis" className="chart-card">
+                <Card title="Sector Analysis" className="chart-card" style={{ minHeight: '550px' }}>
                     <div style={{ padding: 24, textAlign: 'center' }}>No sector analysis data available.</div>
                 </Card>
             );
@@ -326,9 +400,9 @@ const BIDashboard = () => {
         const totalEntities = sectorData.reduce((sum, item) => sum + item.value, 0);
 
         return (
-            <Card title="Sector Analysis" className="chart-card">
+            <Card title="Sector Analysis" className="chart-card" style={{ minHeight: '550px' }}>
                 <div>
-                    <ResponsiveContainer width="100%" height={500}>
+                    <ResponsiveContainer width="100%" height={300}>
                         <BarChart
                             data={sectorData}
                             margin={{ top: 20, right: 30, left: 20, bottom: 60 }}
@@ -462,22 +536,213 @@ const BIDashboard = () => {
         );
     };
 
-    const renderCorrelationAnalysis = () => (
-        <Card title="Correlation Analysis" className="chart-card">
-            <ResponsiveContainer width="100%" height={300}>
-                <ScatterChart>
-                    <CartesianGrid />
-                    <XAxis dataKey="x" />
-                    <YAxis dataKey="y" />
-                    <Tooltip />
-                    <Scatter 
-                        data={metrics.aggregated?.correlations || []} 
-                        fill="#8884d8" 
-                    />
-                </ScatterChart>
-            </ResponsiveContainer>
-        </Card>
-    );
+    const renderBusinessScorecard = () => {
+        if (!scorecard || Object.keys(scorecard).length === 0) {
+            return (
+                <Card title="Business Intelligence Scorecard" className="chart-card">
+                    <div style={{ padding: 24, textAlign: 'center' }}>No scorecard data available.</div>
+                </Card>
+            );
+        }
+
+        return (
+            <Card title="Business Intelligence Scorecard" className="chart-card">
+                <Row gutter={[16, 16]}>
+                    {/* Overall Score */}
+                    {scorecard.summary && (
+                        <Col span={24}>
+                            <Card size="small" title="Overall Performance Score">
+                                <Row gutter={16}>
+                                    <Col span={6}>
+                                        <div style={{ textAlign: 'center' }}>
+                                            <h2 style={{ color: '#1890ff', margin: 0 }}>
+                                                {scorecard.summary.overallScore?.toFixed(1) || 'N/A'}
+                                            </h2>
+                                            <p style={{ margin: 0, fontSize: '18px', fontWeight: 'bold' }}>
+                                                {scorecard.summary.scoreGrade || 'N/A'}
+                                            </p>
+                                            <p style={{ margin: 0, color: '#666' }}>Overall Score</p>
+                                        </div>
+                                    </Col>
+                                    <Col span={18}>
+                                        <div>
+                                            <h4>Key Highlights:</h4>
+                                            <ul>
+                                                {scorecard.summary.highlights?.map((highlight, index) => (
+                                                    <li key={index}>{highlight}</li>
+                                                ))}
+                                            </ul>
+                                        </div>
+                                    </Col>
+                                </Row>
+                            </Card>
+                        </Col>
+                    )}
+
+                    {/* KPIs */}
+                    {scorecard.kpis && (
+                        <Col span={12}>
+                            <Card size="small" title="Key Performance Indicators">
+                                <Row gutter={[8, 8]}>
+                                    <Col span={12}>
+                                        <div style={{ textAlign: 'center', padding: '8px' }}>
+                                            <h3 style={{ margin: 0, color: '#52c41a' }}>
+                                                {scorecard.kpis.totalEntities || 0}
+                                            </h3>
+                                            <p style={{ margin: 0, fontSize: '12px' }}>Total Entities</p>
+                                        </div>
+                                    </Col>
+                                    <Col span={12}>
+                                        <div style={{ textAlign: 'center', padding: '8px' }}>
+                                            <h3 style={{ margin: 0, color: '#1890ff' }}>
+                                                {scorecard.kpis.activityRate?.toFixed(1) || '0'}%
+                                            </h3>
+                                            <p style={{ margin: 0, fontSize: '12px' }}>Activity Rate</p>
+                                        </div>
+                                    </Col>
+                                    <Col span={12}>
+                                        <div style={{ textAlign: 'center', padding: '8px' }}>
+                                            <h3 style={{ margin: 0, color: '#722ed1' }}>
+                                                {scorecard.kpis.sectorDiversity || 0}
+                                            </h3>
+                                            <p style={{ margin: 0, fontSize: '12px' }}>Sector Diversity</p>
+                                        </div>
+                                    </Col>
+                                    <Col span={12}>
+                                        <div style={{ textAlign: 'center', padding: '8px' }}>
+                                            <h3 style={{ margin: 0, color: '#fa8c16' }}>
+                                                {scorecard.kpis.regionalCoverage || 0}
+                                            </h3>
+                                            <p style={{ margin: 0, fontSize: '12px' }}>Regional Coverage</p>
+                                        </div>
+                                    </Col>
+                                </Row>
+                            </Card>
+                        </Col>
+                    )}
+
+                    {/* Top Rankings */}
+                    {scorecard.rankings && (
+                        <Col span={12}>
+                            <Card size="small" title="Top Performers">
+                                <div style={{ marginBottom: 16 }}>
+                                    <h4>Top Sectors:</h4>
+                                    {scorecard.rankings.topSectors?.slice(0, 3).map((sector, index) => (
+                                        <div key={index} style={{ marginBottom: 8 }}>
+                                            <strong>{sector.name}</strong>: {sector.count} entities 
+                                            ({sector.percentage?.toFixed(1)}%)
+                                        </div>
+                                    ))}
+                                </div>
+                                <div>
+                                    <h4>Top Regions:</h4>
+                                    {scorecard.rankings.topRegions?.slice(0, 3).map((region, index) => (
+                                        <div key={index} style={{ marginBottom: 8 }}>
+                                            <strong>{region.name}</strong>: {region.count} entities
+                                        </div>
+                                    ))}
+                                </div>
+                            </Card>
+                        </Col>
+                    )}
+
+                    {/* Action Items */}
+                    {scorecard.actionItems && (
+                        <Col span={24}>
+                            <Card size="small" title="Action Items">
+                                <Row gutter={[16, 16]}>
+                                    {/* High Priority */}
+                                    {scorecard.actionItems.highPriority && scorecard.actionItems.highPriority.length > 0 && (
+                                        <Col span={8}>
+                                            <Card size="small" title="High Priority" style={{ borderColor: '#ff4d4f' }}>
+                                                {scorecard.actionItems.highPriority.map((action, index) => (
+                                                    <div key={index} style={{ marginBottom: 12 }}>
+                                                        <h5 style={{ margin: 0, color: '#ff4d4f' }}>{action.title}</h5>
+                                                        <p style={{ margin: '4px 0', fontSize: '12px' }}>{action.description}</p>
+                                                        <small style={{ color: '#666' }}>
+                                                            Timeline: {action.timeline} | Impact: {action.impact}
+                                                        </small>
+                                                    </div>
+                                                ))}
+                                            </Card>
+                                        </Col>
+                                    )}
+
+                                    {/* Medium Priority */}
+                                    {scorecard.actionItems.mediumPriority && scorecard.actionItems.mediumPriority.length > 0 && (
+                                        <Col span={8}>
+                                            <Card size="small" title="Medium Priority" style={{ borderColor: '#fa8c16' }}>
+                                                {scorecard.actionItems.mediumPriority.map((action, index) => (
+                                                    <div key={index} style={{ marginBottom: 12 }}>
+                                                        <h5 style={{ margin: 0, color: '#fa8c16' }}>{action.title}</h5>
+                                                        <p style={{ margin: '4px 0', fontSize: '12px' }}>{action.description}</p>
+                                                        <small style={{ color: '#666' }}>
+                                                            Timeline: {action.timeline} | Impact: {action.impact}
+                                                        </small>
+                                                    </div>
+                                                ))}
+                                            </Card>
+                                        </Col>
+                                    )}
+
+                                    {/* Low Priority */}
+                                    {scorecard.actionItems.lowPriority && scorecard.actionItems.lowPriority.length > 0 && (
+                                        <Col span={8}>
+                                            <Card size="small" title="Low Priority" style={{ borderColor: '#52c41a' }}>
+                                                {scorecard.actionItems.lowPriority.map((action, index) => (
+                                                    <div key={index} style={{ marginBottom: 12 }}>
+                                                        <h5 style={{ margin: 0, color: '#52c41a' }}>{action.title}</h5>
+                                                        <p style={{ margin: '4px 0', fontSize: '12px' }}>{action.description}</p>
+                                                        <small style={{ color: '#666' }}>
+                                                            Timeline: {action.timeline} | Impact: {action.impact}
+                                                        </small>
+                                                    </div>
+                                                ))}
+                                            </Card>
+                                        </Col>
+                                    )}
+                                </Row>
+                            </Card>
+                        </Col>
+                    )}
+
+                    {/* Performance Analysis */}
+                    {scorecard.summary?.performance && (
+                        <Col span={24}>
+                            <Card size="small" title="Performance Analysis">
+                                <Row gutter={[16, 16]}>
+                                    <Col span={8}>
+                                        <h4 style={{ color: '#52c41a' }}>Strengths:</h4>
+                                        <ul>
+                                            {scorecard.summary.performance.strengths?.map((strength, index) => (
+                                                <li key={index}>{strength}</li>
+                                            ))}
+                                        </ul>
+                                    </Col>
+                                    <Col span={8}>
+                                        <h4 style={{ color: '#ff4d4f' }}>Weaknesses:</h4>
+                                        <ul>
+                                            {scorecard.summary.performance.weaknesses?.map((weakness, index) => (
+                                                <li key={index}>{weakness}</li>
+                                            ))}
+                                        </ul>
+                                    </Col>
+                                    <Col span={8}>
+                                        <h4 style={{ color: '#1890ff' }}>Opportunities:</h4>
+                                        <ul>
+                                            {scorecard.summary.performance.opportunities?.map((opportunity, index) => (
+                                                <li key={index}>{opportunity}</li>
+                                            ))}
+                                        </ul>
+                                    </Col>
+                                </Row>
+                            </Card>
+                        </Col>
+                    )}
+                </Row>
+            </Card>
+        );
+    };
 
     const renderInsights = () => (
         <Card title="Business Insights" className="insights-card">
@@ -558,9 +823,6 @@ const BIDashboard = () => {
 
             <Row gutter={[16, 16]}>
                 <Col span={24}>
-                    {renderTimeSeriesChart()}
-                </Col>
-                <Col span={24}>
                     {renderProductTimeSeriesChart()}
                 </Col>
                 <Col span={12}>
@@ -570,7 +832,7 @@ const BIDashboard = () => {
                     {renderSectorAnalysis()}
                 </Col>
                 <Col span={24}>
-                    {renderCorrelationAnalysis()}
+                    {renderBusinessScorecard()}
                 </Col>
                 <Col span={24}>
                     {renderInsights()}

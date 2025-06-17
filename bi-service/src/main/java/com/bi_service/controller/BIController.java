@@ -61,4 +61,16 @@ public class BIController {
             @RequestParam(defaultValue = "monthly") String interval) {
         return ResponseEntity.ok(biService.getProductTimeSeries(token, interval));
     }
+
+    @GetMapping("/correlations/business")
+    public ResponseEntity<Map<String, Object>> getBusinessCorrelations(
+            @RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(biService.getBusinessCorrelations(token));
+    }
+
+    @GetMapping("/scorecard")
+    public ResponseEntity<Map<String, Object>> getBusinessScorecard(
+            @RequestHeader("Authorization") String token) {
+        return ResponseEntity.ok(biService.getBusinessScorecard(token));
+    }
 }
